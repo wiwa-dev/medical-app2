@@ -1,0 +1,119 @@
+@import 'material-symbols/outlined.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f8f9fb;
+    min-height: 100dvh;
+  }
+
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    font-size: 1.25rem;
+    line-height: 1;
+    vertical-align: middle;
+  }
+
+  .material-symbols-outlined.fill {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+
+  /* Remove arrows from number inputs */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type=number] {
+    -moz-appearance: textfield;
+  }
+
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear {
+    display: none;
+  }
+  input[type="password"]::-webkit-textfield-decoration-container {
+    display: none;
+  }
+}
+
+@layer components {
+  /* Compact table input from tes2.html */
+  .med-input {
+    appearance: none;
+    text-align: right;
+    padding: 4px 8px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    transition: all 0.2s;
+    width: 100%;
+    min-width: 60px;
+  }
+  .med-input:hover {
+    background: #f3f4f6;
+    border-color: #e1e2e4;
+  }
+  .med-input:focus {
+    background: #ffffff;
+    border-color: #006b2c;
+    outline: none;
+    box-shadow: 0 0 0 1px #006b2c;
+  }
+
+  /* Custom scrollbar for data tables */
+  .table-scroll::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+  }
+  .table-scroll::-webkit-scrollbar-track {
+    background: #f8f9fb;
+  }
+  .table-scroll::-webkit-scrollbar-thumb {
+    background-color: #bdcaba;
+    border-radius: 4px;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* Toast animations */
+  .toast-enter {
+    animation: toastIn 0.3s ease forwards;
+  }
+  .toast-leave {
+    animation: toastOut 0.3s ease forwards;
+  }
+
+  .doc-watermark {
+    @apply absolute inset-0 pointer-events-none flex items-center justify-center opacity-[0.03] -rotate-[35deg];
+  }
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes toastOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-16px); }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; }
+  main { margin-left: 0 !important; padding: 0 !important; }
+}

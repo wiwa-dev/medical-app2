@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go build:*)",
+      "Bash(ls /c/Users/wiwadev/medical-app2/*.xlsx)",
+      "Bash(ls /c/Users/wiwadev/medical-app2/*.xls)",
+      "Bash(find /c/Users/wiwadev/medical-app2/pkg -name *.go)",
+      "Bash(xargs grep:*)"
+    ]
+  }
+}

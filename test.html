@@ -1,0 +1,1333 @@
+<!-- Saisie du jour - CMSFP -->
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CMSFP - Saisie du jour</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed": "#161c22",
+                        "surface-container-high": "#dce9ff",
+                        "on-primary-container": "#86a0cd",
+                        "inverse-primary": "#adc7f7",
+                        "inverse-surface": "#213145",
+                        "on-tertiary-container": "#989fa6",
+                        "surface-dim": "#cbdbf5",
+                        "on-secondary-container": "#167249",
+                        "surface-container-highest": "#d3e4fe",
+                        "on-surface": "#0b1c30",
+                        "on-secondary-fixed-variant": "#005231",
+                        "tertiary-fixed": "#dde3eb",
+                        "secondary-fixed-dim": "#83d8a6",
+                        "on-primary-fixed": "#001b3c",
+                        "surface-bright": "#f8f9ff",
+                        "primary-fixed-dim": "#adc7f7",
+                        "surface-tint": "#455f88",
+                        "tertiary-container": "#30363c",
+                        "on-error-container": "#93000a",
+                        "secondary-container": "#9ff5c1",
+                        "inverse-on-surface": "#eaf1ff",
+                        "outline": "#74777f",
+                        "tertiary-fixed-dim": "#c1c7cf",
+                        "error": "#ba1a1a",
+                        "on-error": "#ffffff",
+                        "secondary": "#0a6c44",
+                        "surface-container-low": "#eff4ff",
+                        "on-secondary": "#ffffff",
+                        "tertiary": "#1b2127",
+                        "error-container": "#ffdad6",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed": "#002111",
+                        "on-tertiary-fixed-variant": "#41474e",
+                        "outline-variant": "#c4c6cf",
+                        "surface-variant": "#d3e4fe",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#f8f9ff",
+                        "primary-fixed": "#d6e3ff",
+                        "secondary-fixed": "#9ff5c1",
+                        "primary": "#002045",
+                        "primary-container": "#1a365d",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed-variant": "#2d476f",
+                        "surface": "#f8f9ff",
+                        "surface-container": "#e5eeff",
+                        "on-surface-variant": "#43474e",
+                        "on-background": "#0b1c30"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "lg": "24px",
+                        "sidebar-width": "260px",
+                        "md": "16px",
+                        "base": "4px",
+                        "xs": "4px",
+                        "xl": "32px",
+                        "sm": "8px",
+                        "max-content-width": "1440px"
+                    },
+                    "fontFamily": {
+                        "label-caps": ["Inter"],
+                        "data-mono": ["JetBrains Mono"],
+                        "body-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "h1": ["Inter"],
+                        "h2": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-caps": ["12px", { "lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "data-mono": ["14px", { "lineHeight": "1.4", "fontWeight": "500" }],
+                        "body-lg": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "h1": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "h2": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .fill-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+        /* Custom scrollbar for data tables */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: theme('colors.surface-container-lowest'); 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: theme('colors.outline-variant'); 
+            border-radius: theme('borderRadius.DEFAULT');
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: theme('colors.outline'); 
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-sm overflow-x-hidden min-h-screen">
+<!-- TopNavBar -->
+<header class="hidden md:flex justify-between items-center h-16 px-xl ml-sidebar-width w-[calc(100%-260px)] fixed top-0 bg-surface border-b border-outline-variant z-40">
+<div class="font-h2 text-h2 font-bold text-primary">
+            CMSFP Management
+        </div>
+<div class="flex items-center gap-md">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="pl-xl pr-sm py-sm rounded-DEFAULT border-outline-variant bg-surface-container-lowest text-body-sm focus:ring-primary focus:border-primary" placeholder="Rechercher..." type="text"/>
+</div>
+<div class="flex items-center gap-sm">
+<button class="p-sm text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined">dark_mode</span>
+</button>
+<button class="p-sm text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-80 relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-sm right-sm w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="p-sm text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined">help</span>
+</button>
+</div>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">person</span>
+<img alt="Profil Administrateur" class="w-full h-full object-cover hidden" data-alt="A professional headshot of an administrator in a medical setting, clean lighting, white background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIuIm9Dcs9LSSrOhsbwI1M-i8B9luwR6OkFK6Bm68bgUpQRO_MTErFmJxFdL-NZJY9mJiivxLVj2rmKK-pWfvFWFKw34arlofWhOc8XmTf5m_v1T83Sw3jD5XRKzZNyBdAVqtcbl7Baw5UbVpHo7nzDXuzo5AjEpzc_Ae6THio6l9GuwbyUkXsHiW1SswST_RSqkRCL7KHRadQthqCIAUFUGFkHSsrSOPl36k-lZ00W3oQjqW6E7a-sAFTQ1YL8CZ4LNxZcTmqdj4"/>
+</div>
+</div>
+</header>
+<!-- SideNavBar -->
+<nav class="fixed left-0 top-0 h-full w-sidebar-width bg-primary border-r border-outline-variant shadow-sm z-50 flex flex-col py-lg hidden md:flex">
+<div class="px-lg mb-xl flex items-center gap-md">
+<div class="w-10 h-10 rounded-DEFAULT bg-on-primary text-primary flex items-center justify-center font-bold text-h2">
+                C
+            </div>
+<div>
+<h1 class="font-h2 text-h2 text-on-primary">CMSFP Dakar</h1>
+<p class="font-body-sm text-body-sm text-inverse-primary/80">Gestion Financière</p>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto mt-md">
+<!-- Active Tab -->
+<a class="flex items-center gap-3 px-4 py-3 border-l-4 border-secondary-fixed bg-on-primary-fixed-variant text-secondary-fixed font-body-sm text-body-sm active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined fill-icon">edit_calendar</span>
+                Saisie du jour
+            </a>
+<!-- Inactive Tabs -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary/70 hover:text-on-primary hover:bg-on-primary-fixed-variant/50 transition-colors font-body-sm text-body-sm active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">calendar_month</span>
+                Rapport mensuel
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary/70 hover:text-on-primary hover:bg-on-primary-fixed-variant/50 transition-colors font-body-sm text-body-sm active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">account_balance</span>
+                Bilan annuel
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary/70 hover:text-on-primary hover:bg-on-primary-fixed-variant/50 transition-colors font-body-sm text-body-sm active:scale-95 transition-transform duration-150 mt-auto" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Paramètres
+            </a>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="md:ml-sidebar-width md:mt-16 p-md md:p-lg lg:p-xl max-w-max-content-width mx-auto">
+<!-- Header Section -->
+<div class="mb-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-md">
+<div>
+<h2 class="font-h1 text-h1 text-on-surface mb-xs">Saisie du jour</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant flex items-center gap-sm">
+<span class="material-symbols-outlined text-[18px]">today</span>
+<span id="currentDate">Mercredi 25 Octobre 2023</span>
+</p>
+</div>
+<!-- Summary Metrics -->
+<div class="flex gap-md bg-surface-container-lowest border border-outline-variant rounded-lg p-sm shadow-sm w-full md:w-auto">
+<div class="px-md py-sm border-r border-outline-variant last:border-0">
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-xs">Total Recettes (Semaine)</p>
+<p class="font-data-mono text-data-mono text-on-surface font-bold text-lg text-secondary">2 450 000 FCFA</p>
+</div>
+<div class="px-md py-sm">
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-xs">Total Dépenses (Semaine)</p>
+<p class="font-data-mono text-data-mono text-on-surface font-bold text-lg text-error">450 000 FCFA</p>
+</div>
+</div>
+</div>
+<form class="space-y-lg">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-lg items-start">
+<!-- Recettes Column -->
+<div class="lg:col-span-8 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
+<div class="bg-surface-container px-lg py-md border-b border-outline-variant flex justify-between items-center">
+<h3 class="font-h2 text-h2 text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary">add_circle</span>
+                            Recettes par Service
+                        </h3>
+<span class="font-label-caps text-label-caps text-on-surface-variant bg-surface-container-highest px-sm py-xs rounded">Montants en FCFA</span>
+</div>
+<div class="p-lg grid grid-cols-1 md:grid-cols-2 gap-x-lg gap-y-md">
+<!-- Service Inputs -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-caps text-label-caps text-on-surface-variant">Analyses biologiques</label>
+<div class="relative">
+<input class="w-full rounded-DEFAULT border-outline-variant focus:ring-primary focus:border-primary font-data-mono text-data-mono pr-12 text-right" placeholder="0" type="number"/>
+<span class="absolute right-sm top-1/2 -translate-y-1/2 font-data-mono text-on-surface-variant text-xs">CFA</span>
+</div>
+</div>
+<div class="flex flex-col gap-xs">
+<label class="font-label-caps text-label-caps text-on-surface-variant">GSRH</label>
+<div class="relative">
+<input class="w-full rounded-DEFAULT border-outline-variant focus:ring-primary focus:border-primary font-data-mono text-data-mono pr-12 text-right" placeholder="0" type="number"/>
+<span class="absolute right-sm top-1/2 -translate-y-1/2 font-data-mono text-on-surface-variant text-xs">CFA</span>
+</div>
+</div>
+<div class="flex flex-col gap-xs">
+<label class="font-label-caps text-label-caps text-on-surface-variant">ECG</label>
+<div class="relative">
+<input class="w-full rounded-DEFAULT border-outline-variant focus:ring-primary focus:border-primary font-data-mono text-data-mono pr-12 text-right" placeholder="0" type="number"/>
+<span class="absolute right-sm top-1/2 -translate-y-1/2 font-data-mono text-on-surface-variant text-xs">CFA</span>
+</div>
+</div>
+<div class="flex flex-col gap-xs">
+<label class="font-label-caps text-label-caps text-on-surface-variant">Echocœur</label>
+<div class="relative">
+<input class="w-full rounded-DEFAULT border-outline-variant focus:ring-primary focus:border-primary font-data-mono text-data-mono pr-12 text-right" placeholder="0" type="number"/>
+<span class="absolute right-sm top-1/2 -translate-y-1/2 font-data-mono text-on-surface-variant text-xs">CFA</span>
+</div>
+</div>
+<div class="flex flex-col gap-xs">
+<label class="font-label-caps text-label-caps text-on-surface-variant">Holter ECG</label>
+<div class="relative">
+<input class="w-full rounded-DEFAULT border-outline-variant focus:ring-primary focus:border-primary font-data-mono text-data-mono pr-12 text-right" placeholder="0" type="number"/>
+<span class="absolute right-sm top-1/2 -translate-y-1/2 font-data-mono text-on-surface-variant text-xs">CFA</span>
+</div>
+</div>
+<div class="flex flex-col gap-xs">
+<label class="font-label-caps text-label-caps text-on-surface-variant">MAPA</label>
+<div class="relative">
+<input class="w-full rounded-DEFAULT border-outline-variant focus:ring-primary focus:border-primary font-data-mono text-data-mono pr-12 text-right" placeholder="0" type="number"/>
+<span class="absolute right-sm top-1/2 -translate-y-1/2 font-data-mono text-on-surface-variant text-xs">CFA</span>
+</div>
+</div>
+<div class="flex flex-col gap-xs">
+<label class="font-label-caps text-label-caps text-on-surface-variant">Dentiste</label>
+<div class="relative">
+<input class="w-full rounded-DEFAULT border-outline-variant focus:ring-primary focus:border-primary font-data-mono text-data-mono pr-12 text-right" placeholder="0" type="number"/>
+<span class="absolute right-sm top-1/2 -translate-y-1/2 font-data-mono text-on-surface-variant text-xs">CFA</span>
+</div>
+</div>
+<div class="flex flex-col gap-xs">
+<label class="font-label-caps text-label-caps text-on-surface-variant">Ophtalmologie</label>
+<div class="relative">
+<input class="w-full rounded-DEFAULT border-outline-variant focus:ring-primary focus:border-primary font-data-mono text-data-mono pr-12 text-right" placeholder="0" type="number"/>
+<span class="absolute right-sm top-1/2 -translate-y-1/2 font-data-mono text-on-surface-variant text-xs">CFA</span>
+</div>
+</div>
+<div class="flex flex-col gap-xs">
+<label class="font-label-caps text-label-caps text-on-surface-variant">Imagerie médicale</label>
+<div class="relative">
+<input class="w-full rounded-DEFAULT border-outline-variant focus:ring-primary focus:border-primary font-data-mono text-data-mono pr-12 text-right" placeholder="0" type="number"/>
+<span class="absolute right-sm top-1/2 -translate-y-1/2 font-data-mono text-on-surface-variant text-xs">CFA</span>
+</div>
+</div>
+<div class="flex flex-col gap-xs">
+<label class="font-label-caps text-label-caps text-on-surface-variant">Cardiologie</label>
+<div class="relative">
+<input class="w-full rounded-DEFAULT border-outline-variant focus:ring-primary focus:border-primary font-data-mono text-data-mono pr-12 text-right" placeholder="0" type="number"/>
+<span class="absolute right-sm top-1/2 -translate-y-1/2 font-data-mono text-on-surface-variant text-xs">CFA</span>
+</div>
+</div>
+</div>
+<div class="bg-surface px-lg py-md border-t border-outline-variant flex justify-between items-center">
+<span class="font-label-caps text-label-caps text-on-surface-variant">Sous-total Recettes</span>
+<span class="font-data-mono text-data-mono font-bold text-lg text-primary">0 FCFA</span>
+</div>
+</div>
+<!-- Dépenses Column & Actions -->
+<div class="lg:col-span-4 flex flex-col gap-lg">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
+<div class="bg-error-container/20 px-lg py-md border-b border-outline-variant">
+<h3 class="font-h2 text-h2 text-error flex items-center gap-sm">
+<span class="material-symbols-outlined">remove_circle</span>
+                                Dépenses journalières
+                            </h3>
+</div>
+<div class="p-lg flex flex-col gap-md" id="expensesContainer">
+<div class="expense-row flex gap-sm items-start">
+<div class="flex-1 flex flex-col gap-xs">
+<label class="font-label-caps text-label-caps text-on-surface-variant sr-only">Description</label>
+<input class="w-full rounded-DEFAULT border-outline-variant focus:ring-error focus:border-error text-body-sm" placeholder="Description" type="text"/>
+</div>
+<div class="w-32 flex flex-col gap-xs">
+<label class="font-label-caps text-label-caps text-on-surface-variant sr-only">Montant</label>
+<input class="w-full rounded-DEFAULT border-outline-variant focus:ring-error focus:border-error font-data-mono text-data-mono text-right" placeholder="0" type="number"/>
+</div>
+</div>
+<!-- Add Expense Button -->
+<button class="text-error text-body-sm font-bold flex items-center gap-xs hover:bg-error-container/30 w-fit px-sm py-xs rounded transition-colors" onclick="addExpenseRow()" type="button">
+<span class="material-symbols-outlined text-[16px]">add</span> Ajouter une ligne
+                            </button>
+</div>
+<div class="bg-surface px-lg py-md border-t border-outline-variant flex justify-between items-center">
+<span class="font-label-caps text-label-caps text-on-surface-variant">Sous-total Dépenses</span>
+<span class="font-data-mono text-data-mono font-bold text-lg text-error">0 FCFA</span>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="flex gap-md mt-auto">
+<button class="flex-1 bg-surface-container-lowest border border-outline text-on-surface-variant font-bold rounded-lg py-md hover:bg-surface-container-high transition-colors font-body-sm" type="button">
+                            Annuler
+                        </button>
+<button class="flex-1 bg-primary text-on-primary font-bold rounded-lg py-md hover:bg-primary/90 transition-colors shadow-sm font-body-sm flex items-center justify-center gap-sm" type="button">
+<span class="material-symbols-outlined text-[18px]">save</span>
+                            Enregistrer
+                        </button>
+</div>
+</div>
+</div>
+</form>
+<!-- Data Table Section -->
+<div class="mt-xl">
+<h3 class="font-h2 text-h2 text-on-surface mb-md">Historique de la semaine (Semaine 43)</h3>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-high border-b border-outline-variant font-label-caps text-label-caps text-on-surface-variant">
+<th class="p-md sticky left-0 bg-surface-container-high z-10 w-32">Date</th>
+<th class="p-md w-24">Statut</th>
+<th class="p-md text-right w-40">Recettes (FCFA)</th>
+<th class="p-md text-right w-40">Dépenses (FCFA)</th>
+<th class="p-md text-right w-40">Solde Net (FCFA)</th>
+<th class="p-md text-center w-20">Actions</th>
+</tr>
+</thead>
+<tbody class="font-body-sm">
+<!-- Row 1 -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest/80 transition-colors">
+<td class="p-md sticky left-0 bg-surface-container-lowest z-10 font-bold">24 Oct 2023</td>
+<td class="p-md">
+<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-wider">
+<span class="material-symbols-outlined text-[12px]">check_circle</span> Validé
+                                </span>
+</td>
+<td class="p-md text-right font-data-mono text-data-mono">850 000</td>
+<td class="p-md text-right font-data-mono text-data-mono text-error">120 000</td>
+<td class="p-md text-right font-data-mono text-data-mono text-secondary">730 000</td>
+<td class="p-md text-center">
+<button class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[18px]">visibility</span></button>
+</td>
+</tr>
+<!-- Row 2 Zebra -->
+<tr class="border-b border-outline-variant/50 bg-primary/2 hover:bg-surface-container-lowest/80 transition-colors">
+<td class="p-md sticky left-0 bg-surface-container-lowest z-10 font-bold">23 Oct 2023</td>
+<td class="p-md">
+<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-wider">
+<span class="material-symbols-outlined text-[12px]">check_circle</span> Validé
+                                </span>
+</td>
+<td class="p-md text-right font-data-mono text-data-mono">720 000</td>
+<td class="p-md text-right font-data-mono text-data-mono text-error">50 000</td>
+<td class="p-md text-right font-data-mono text-data-mono text-secondary">670 000</td>
+<td class="p-md text-center">
+<button class="text-on-surface-variant hover:text-primary"><span class="material-symbols-outlined text-[18px]">visibility</span></button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest/80 transition-colors">
+<td class="p-md sticky left-0 bg-surface-container-lowest z-10 font-bold">22 Oct 2023</td>
+<td class="p-md">
+<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-surface-variant text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">
+<span class="material-symbols-outlined text-[12px]">hourglass_empty</span> Brouillon
+                                </span>
+</td>
+<td class="p-md text-right font-data-mono text-data-mono text-on-surface-variant">---</td>
+<td class="p-md text-right font-data-mono text-data-mono text-on-surface-variant">---</td>
+<td class="p-md text-right font-data-mono text-data-mono text-on-surface-variant">---</td>
+<td class="p-md text-center">
+<button class="text-primary hover:text-primary/80"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+</td>
+</tr>
+</tbody>
+<tfoot>
+<tr class="bg-surface-container border-t-2 border-outline-variant font-bold">
+<td class="p-md text-right font-label-caps text-label-caps text-on-surface-variant" colspan="2">TOTAUX (SEMAINE EN COURS)</td>
+<td class="p-md text-right font-data-mono text-data-mono text-lg text-primary">1 570 000</td>
+<td class="p-md text-right font-data-mono text-data-mono text-lg text-error">170 000</td>
+<td class="p-md text-right font-data-mono text-data-mono text-lg text-secondary">1 400 000</td>
+<td></td>
+</tr>
+</tfoot>
+</table>
+</div>
+</div>
+</main>
+<script>
+        // Set current date in French
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const today = new Date();
+        const dateString = today.toLocaleDateString('fr-FR', options);
+        document.getElementById('currentDate').textContent = dateString.charAt(0).toUpperCase() + dateString.slice(1);
+
+        // Simple script to add expense row
+        function addExpenseRow() {
+            const container = document.getElementById('expensesContainer');
+            const addButton = container.lastElementChild;
+            const newRow = document.createElement('div');
+            newRow.className = 'expense-row flex gap-sm items-start';
+            newRow.innerHTML = `
+                <div class="flex-1 flex flex-col gap-xs">
+                    <input type="text" class="w-full rounded-DEFAULT border-outline-variant focus:ring-error focus:border-error text-body-sm" placeholder="Description">
+                </div>
+                <div class="w-32 flex flex-col gap-xs">
+                    <input type="number" class="w-full rounded-DEFAULT border-outline-variant focus:ring-error focus:border-error font-data-mono text-data-mono text-right" placeholder="0">
+                </div>
+                <button type="button" class="p-xs text-on-surface-variant hover:text-error mt-1" onclick="this.parentElement.remove()">
+                    <span class="material-symbols-outlined">delete</span>
+                </button>
+            `;
+            container.insertBefore(newRow, addButton);
+        }
+    </script>
+</body></html>
+
+<!-- Rapport Mensuel - CMSFP -->
+<!DOCTYPE html>
+
+<html lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CMSFP - Rapport Mensuel</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-tertiary-fixed": "#161c22",
+                      "surface-container-high": "#dce9ff",
+                      "on-primary-container": "#86a0cd",
+                      "inverse-primary": "#adc7f7",
+                      "inverse-surface": "#213145",
+                      "on-tertiary-container": "#989fa6",
+                      "surface-dim": "#cbdbf5",
+                      "on-secondary-container": "#167249",
+                      "surface-container-highest": "#d3e4fe",
+                      "on-surface": "#0b1c30",
+                      "on-secondary-fixed-variant": "#005231",
+                      "tertiary-fixed": "#dde3eb",
+                      "secondary-fixed-dim": "#83d8a6",
+                      "on-primary-fixed": "#001b3c",
+                      "surface-bright": "#f8f9ff",
+                      "primary-fixed-dim": "#adc7f7",
+                      "surface-tint": "#455f88",
+                      "tertiary-container": "#30363c",
+                      "on-error-container": "#93000a",
+                      "secondary-container": "#9ff5c1",
+                      "inverse-on-surface": "#eaf1ff",
+                      "outline": "#74777f",
+                      "tertiary-fixed-dim": "#c1c7cf",
+                      "error": "#ba1a1a",
+                      "on-error": "#ffffff",
+                      "secondary": "#0a6c44",
+                      "surface-container-low": "#eff4ff",
+                      "on-secondary": "#ffffff",
+                      "tertiary": "#1b2127",
+                      "error-container": "#ffdad6",
+                      "on-tertiary": "#ffffff",
+                      "on-secondary-fixed": "#002111",
+                      "on-tertiary-fixed-variant": "#41474e",
+                      "outline-variant": "#c4c6cf",
+                      "surface-variant": "#d3e4fe",
+                      "surface-container-lowest": "#ffffff",
+                      "background": "#f8f9ff",
+                      "primary-fixed": "#d6e3ff",
+                      "secondary-fixed": "#9ff5c1",
+                      "primary": "#002045",
+                      "primary-container": "#1a365d",
+                      "on-primary": "#ffffff",
+                      "on-primary-fixed-variant": "#2d476f",
+                      "surface": "#f8f9ff",
+                      "surface-container": "#e5eeff",
+                      "on-surface-variant": "#43474e",
+                      "on-background": "#0b1c30"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "lg": "24px",
+                      "sidebar-width": "260px",
+                      "md": "16px",
+                      "base": "4px",
+                      "xs": "4px",
+                      "xl": "32px",
+                      "sm": "8px",
+                      "max-content-width": "1440px"
+              },
+              "fontFamily": {
+                      "label-caps": ["Inter"],
+                      "data-mono": ["JetBrains Mono"],
+                      "body-lg": ["Inter"],
+                      "body-sm": ["Inter"],
+                      "h1": ["Inter"],
+                      "h2": ["Inter"]
+              },
+              "fontSize": {
+                      "label-caps": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                      "data-mono": ["14px", {"lineHeight": "1.4", "fontWeight": "500"}],
+                      "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                      "body-sm": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                      "h1": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "h2": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        @media print {
+            .no-print { display: none !important; }
+            .print-full-width { width: 100% !important; margin: 0 !important; max-width: none !important; }
+            body { background-color: white; }
+            .print-border-none { border: none !important; box-shadow: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-sm text-body-sm flex min-h-screen">
+<!-- SideNavBar -->
+<nav class="fixed left-0 top-0 h-full w-sidebar-width bg-primary dark:bg-primary-container flex flex-col py-lg border-r border-outline-variant dark:border-outline shadow-sm z-20 no-print">
+<div class="px-xl mb-xl">
+<div class="flex items-center gap-sm">
+<div class="w-8 h-8 rounded bg-primary-fixed flex items-center justify-center text-primary font-bold">C</div>
+<div>
+<h1 class="font-h2 text-h2 text-on-primary dark:text-inverse-primary m-0 leading-none">CMSFP Dakar</h1>
+<p class="font-label-caps text-label-caps text-on-primary/70 mt-xs">Gestion Financière</p>
+</div>
+</div>
+</div>
+<div class="flex-1 flex flex-col">
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary/70 hover:text-on-primary hover:bg-on-primary-fixed-variant/50 transition-colors active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined text-lg">edit_calendar</span>
+<span>Saisie du jour</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 border-l-4 border-secondary-fixed bg-on-primary-fixed-variant text-secondary-fixed hover:bg-on-primary-fixed-variant/50 transition-colors active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
+<span>Rapport mensuel</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary/70 hover:text-on-primary hover:bg-on-primary-fixed-variant/50 transition-colors active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined text-lg">account_balance</span>
+<span>Bilan annuel</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary/70 hover:text-on-primary hover:bg-on-primary-fixed-variant/50 transition-colors active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined text-lg">settings</span>
+<span>Paramètres</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Wrapper -->
+<div class="flex-1 ml-sidebar-width flex flex-col min-w-0 print-full-width">
+<!-- TopNavBar -->
+<header class="bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline h-16 px-xl flex justify-between items-center w-full z-10 no-print">
+<div class="font-h2 text-h2 font-bold text-primary dark:text-inverse-primary">
+                CMSFP Management
+            </div>
+<div class="flex items-center gap-lg">
+<div class="flex gap-sm text-on-surface-variant dark:text-on-tertiary-container">
+<span class="material-symbols-outlined cursor-pointer active:opacity-80 hover:text-primary dark:hover:text-inverse-primary transition-colors">dark_mode</span>
+<span class="material-symbols-outlined cursor-pointer active:opacity-80 hover:text-primary dark:hover:text-inverse-primary transition-colors">notifications</span>
+<span class="material-symbols-outlined cursor-pointer active:opacity-80 hover:text-primary dark:hover:text-inverse-primary transition-colors">help</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-variant border border-outline-variant overflow-hidden">
+<img alt="Profil Administrateur" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAF-eTmXTBkzMeq6VME8LlKa8P71V7u-CHrwaPBdeMzBr3dzpfj52HCaqu-54J_eu2JYb1bemY3Uw2Xhidh7BiACToEBE6S0B2VxDpPTda1lFcRuuizhbJSQkEZXzLF9abesA1O1C16oGsv6wd6ecTGGTUfNB5OwG9_OMtiawudiifGbRLeSU2kNfMrzbELhFvrWhqVPzqDTMjOy4b26UMW58Uoofp34AhOoIeld7_grYLyPpYX4OZwyrO-88DL0wmK-q_0jqEc_is"/>
+</div>
+</div>
+</header>
+<!-- Page Content -->
+<main class="p-xl flex-1 bg-surface-container-low print-full-width">
+<!-- Page Header -->
+<div class="flex justify-between items-end mb-lg max-w-[1000px] mx-auto no-print">
+<div>
+<h2 class="font-h1 text-h1 text-primary">Rapport Mensuel</h2>
+<p class="text-on-surface-variant mt-xs">Exercice: Octobre 2023</p>
+</div>
+<button class="bg-primary text-on-primary px-md py-sm rounded flex items-center gap-sm hover:bg-primary-container transition-colors shadow-sm" onclick="window.print()">
+<span class="material-symbols-outlined text-sm">download</span>
+<span class="font-label-caps text-label-caps">Télécharger PDF</span>
+</button>
+</div>
+<!-- Report Document -->
+<div class="bg-surface-container-lowest shadow-sm border border-outline-variant rounded-lg p-xl mx-auto max-w-[1000px] w-full flex flex-col gap-xl print-border-none">
+<!-- Header Document -->
+<div class="border-b border-outline pb-md mb-md flex justify-between items-start">
+<div>
+<h3 class="font-h2 text-h2 text-primary">CMSFP Dakar</h3>
+<p class="text-on-surface-variant">Rapport Financier Mensuel</p>
+</div>
+<div class="text-right">
+<p class="font-label-caps text-label-caps text-on-surface-variant">Période</p>
+<p class="font-data-mono text-data-mono">01/10/2023 - 31/10/2023</p>
+<p class="font-label-caps text-label-caps text-on-surface-variant mt-sm">Devise</p>
+<p class="font-data-mono text-data-mono">Franc CFA (XOF)</p>
+</div>
+</div>
+<!-- 1. RECETTES -->
+<section>
+<h4 class="font-h2 text-h2 text-primary mb-md flex items-center gap-sm">
+<span class="material-symbols-outlined text-secondary">trending_up</span>
+                        RECETTES
+                    </h4>
+<div class="overflow-x-auto border border-outline-variant rounded">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-highest border-b border-outline-variant">
+<tr>
+<th class="py-sm px-md font-label-caps text-label-caps text-on-surface-variant">Service</th>
+<th class="py-sm px-md font-label-caps text-label-caps text-on-surface-variant text-right">Semaine 1</th>
+<th class="py-sm px-md font-label-caps text-label-caps text-on-surface-variant text-right">Semaine 2</th>
+<th class="py-sm px-md font-label-caps text-label-caps text-on-surface-variant text-right">Semaine 3</th>
+<th class="py-sm px-md font-label-caps text-label-caps text-on-surface-variant text-right">Semaine 4</th>
+<th class="py-sm px-md font-label-caps text-label-caps text-primary text-right bg-surface-variant">Total Mensuel</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm">
+<tr class="border-b border-outline-variant/50 even:bg-primary/[0.02]">
+<td class="py-sm px-md font-medium text-on-surface">Consultation Générale</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono">450 000</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono">520 000</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono">480 000</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono">510 000</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono font-bold bg-surface-variant/50">1 960 000</td>
+</tr>
+<tr class="border-b border-outline-variant/50 even:bg-primary/[0.02]">
+<td class="py-sm px-md font-medium text-on-surface">Laboratoire d'Analyses</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono">820 000</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono">750 000</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono">890 000</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono">910 000</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono font-bold bg-surface-variant/50">3 370 000</td>
+</tr>
+<tr class="border-b border-outline-variant/50 even:bg-primary/[0.02]">
+<td class="py-sm px-md font-medium text-on-surface">Pharmacie</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono">1 200 000</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono">1 150 000</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono">1 300 000</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono">1 250 000</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono font-bold bg-surface-variant/50">4 900 000</td>
+</tr>
+<tr class="border-b border-outline-variant/50 even:bg-primary/[0.02]">
+<td class="py-sm px-md font-medium text-on-surface">Soins Dentaires</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono">350 000</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono">400 000</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono">380 000</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono">420 000</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono font-bold bg-surface-variant/50">1 550 000</td>
+</tr>
+</tbody>
+<tfoot class="bg-surface-container-high border-t-2 border-outline">
+<tr>
+<td class="py-sm px-md font-label-caps text-label-caps text-primary font-bold">TOTAL RECETTES</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono font-bold">2 820 000</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono font-bold">2 820 000</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono font-bold">3 050 000</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono font-bold">3 090 000</td>
+<td class="py-sm px-md text-right font-data-mono text-data-mono text-primary text-lg font-bold">11 780 000</td>
+</tr>
+</tfoot>
+</table>
+</div>
+</section>
+<!-- 2. DEPENSES -->
+<section>
+<h4 class="font-h2 text-h2 text-primary mb-md flex items-center gap-sm">
+<span class="material-symbols-outlined text-error">trending_down</span>
+                        DEPENSES
+                    </h4>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-lg">
+<!-- Honoraires -->
+<div>
+<h5 class="font-label-caps text-label-caps text-on-surface-variant mb-sm">Honoraires du Personnel</h5>
+<div class="border border-outline-variant rounded overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-highest border-b border-outline-variant">
+<tr>
+<th class="py-xs px-sm font-label-caps text-label-caps text-on-surface-variant">Nom &amp; Rôle</th>
+<th class="py-xs px-sm font-label-caps text-label-caps text-on-surface-variant text-right">Montant</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm">
+<tr class="border-b border-outline-variant/50 even:bg-primary/[0.02]">
+<td class="py-xs px-sm text-on-surface">
+<div>Dr. A. Ndiaye</div>
+<div class="text-[11px] text-on-surface-variant">Médecin Chef</div>
+</td>
+<td class="py-xs px-sm text-right font-data-mono text-data-mono">850 000</td>
+</tr>
+<tr class="border-b border-outline-variant/50 even:bg-primary/[0.02]">
+<td class="py-xs px-sm text-on-surface">
+<div>M. O. Fall</div>
+<div class="text-[11px] text-on-surface-variant">Infirmier d'État</div>
+</td>
+<td class="py-xs px-sm text-right font-data-mono text-data-mono">350 000</td>
+</tr>
+<tr class="border-b border-outline-variant/50 even:bg-primary/[0.02]">
+<td class="py-xs px-sm text-on-surface">
+<div>Mme. F. Sow</div>
+<div class="text-[11px] text-on-surface-variant">Technicienne Labo</div>
+</td>
+<td class="py-xs px-sm text-right font-data-mono text-data-mono">400 000</td>
+</tr>
+</tbody>
+<tfoot class="bg-surface-container-high border-t border-outline-variant">
+<tr>
+<td class="py-xs px-sm font-label-caps text-label-caps">Total Honoraires</td>
+<td class="py-xs px-sm text-right font-data-mono text-data-mono font-bold">1 600 000</td>
+</tr>
+</tfoot>
+</table>
+</div>
+</div>
+<!-- Autres Dépenses -->
+<div>
+<h5 class="font-label-caps text-label-caps text-on-surface-variant mb-sm">Fonctionnement &amp; Autres</h5>
+<div class="border border-outline-variant rounded overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-highest border-b border-outline-variant">
+<tr>
+<th class="py-xs px-sm font-label-caps text-label-caps text-on-surface-variant">Description</th>
+<th class="py-xs px-sm font-label-caps text-label-caps text-on-surface-variant text-right">Montant</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm">
+<tr class="border-b border-outline-variant/50 even:bg-primary/[0.02]">
+<td class="py-xs px-sm text-on-surface">Achat Réactifs Labo</td>
+<td class="py-xs px-sm text-right font-data-mono text-data-mono">1 250 000</td>
+</tr>
+<tr class="border-b border-outline-variant/50 even:bg-primary/[0.02]">
+<td class="py-xs px-sm text-on-surface">Facture Électricité Senelec</td>
+<td class="py-xs px-sm text-right font-data-mono text-data-mono">450 000</td>
+</tr>
+<tr class="border-b border-outline-variant/50 even:bg-primary/[0.02]">
+<td class="py-xs px-sm text-on-surface">Entretien Locaux</td>
+<td class="py-xs px-sm text-right font-data-mono text-data-mono">150 000</td>
+</tr>
+<tr class="border-b border-outline-variant/50 even:bg-primary/[0.02]">
+<td class="py-xs px-sm text-on-surface">Fournitures Bureau</td>
+<td class="py-xs px-sm text-right font-data-mono text-data-mono">85 000</td>
+</tr>
+</tbody>
+<tfoot class="bg-surface-container-high border-t border-outline-variant">
+<tr>
+<td class="py-xs px-sm font-label-caps text-label-caps">Total Fonctionnement</td>
+<td class="py-xs px-sm text-right font-data-mono text-data-mono font-bold">1 935 000</td>
+</tr>
+</tfoot>
+</table>
+</div>
+</div>
+</div>
+<div class="mt-md bg-error-container text-on-error-container p-sm rounded flex justify-between items-center border border-error/20">
+<span class="font-label-caps text-label-caps font-bold">TOTAL DEPENSES MENSUELLES</span>
+<span class="font-data-mono text-data-mono text-lg font-bold">3 535 000</span>
+</div>
+</section>
+<hr class="border-outline-variant/50"/>
+<!-- 3 & 4. SYNTHESE & INVESTISSEMENTS -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-lg">
+<!-- Analyses Gratuites (Side Info) -->
+<div class="md:col-span-4 flex flex-col gap-md">
+<h4 class="font-label-caps text-label-caps text-on-surface-variant flex items-center gap-xs">
+<span class="material-symbols-outlined text-sm">analytics</span>
+                            Analyses Gratuites
+                        </h4>
+<div class="bg-surface-container-low border border-outline-variant rounded p-md">
+<div class="flex justify-between items-center mb-sm border-b border-outline-variant/50 pb-xs">
+<span class="text-on-surface text-sm">Agents de l'État</span>
+<span class="font-data-mono text-data-mono font-bold text-primary">124</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-on-surface text-sm">Non-Agents (Ayants droit)</span>
+<span class="font-data-mono text-data-mono font-bold text-primary">86</span>
+</div>
+</div>
+<h4 class="font-label-caps text-label-caps text-on-surface-variant flex items-center gap-xs mt-sm">
+<span class="material-symbols-outlined text-sm">construction</span>
+                            Investissements du Mois
+                        </h4>
+<div class="border border-outline-variant rounded overflow-hidden">
+<table class="w-full text-left border-collapse">
+<tbody class="font-body-sm text-body-sm">
+<tr class="border-b border-outline-variant/50">
+<td class="py-xs px-sm text-on-surface text-xs">Climatiseur Salle Attente</td>
+<td class="py-xs px-sm text-right font-data-mono text-data-mono text-xs">350 000</td>
+</tr>
+<tr>
+<td class="py-xs px-sm text-on-surface text-xs">Licence Logiciel Médical</td>
+<td class="py-xs px-sm text-right font-data-mono text-data-mono text-xs">150 000</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- SYNTHESE FINANCIERE (The core summary) -->
+<div class="md:col-span-8 bg-primary text-on-primary rounded-lg p-lg shadow-sm border border-primary-container relative overflow-hidden">
+<!-- Decorative background element -->
+<div class="absolute -right-10 -top-10 w-40 h-40 bg-primary-container rounded-full opacity-50 pointer-events-none"></div>
+<h4 class="font-h2 text-h2 mb-lg flex items-center gap-sm relative z-10">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+                            Synthèse Financière
+                        </h4>
+<div class="grid grid-cols-[1fr_auto] gap-y-sm items-center relative z-10">
+<div class="text-on-primary/80">Report à nouveau (Mois précédent)</div>
+<div class="text-right font-data-mono text-data-mono">4 250 000</div>
+<div class="border-t border-on-primary/20 col-span-2 my-xs"></div>
+<div class="text-on-primary/80">Total Recettes</div>
+<div class="text-right font-data-mono text-data-mono text-secondary-fixed">11 780 000</div>
+<div class="text-on-primary/80">Total Dépenses</div>
+<div class="text-right font-data-mono text-data-mono text-error-container">- 3 535 000</div>
+<div class="border-t border-on-primary/20 col-span-2 my-xs"></div>
+<div class="font-bold">Bénéfice d'Exploitation du Mois</div>
+<div class="text-right font-data-mono text-data-mono font-bold text-lg">8 245 000</div>
+<div class="text-on-primary/80">Investissements</div>
+<div class="text-right font-data-mono text-data-mono text-error-container">- 500 000</div>
+<div class="border-t-2 border-on-primary/40 col-span-2 my-sm"></div>
+<div class="font-h2 text-h2">SOLDE FINAL DISPONIBLE</div>
+<div class="text-right font-data-mono text-data-mono text-xl font-bold text-secondary-fixed">11 995 000 <span class="text-sm font-normal">FCFA</span></div>
+</div>
+</div>
+</div>
+<!-- Footer Signatures -->
+<div class="mt-xl pt-xl border-t border-outline flex justify-between px-lg">
+<div class="text-center">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-xl">Le Chef de Centre</p>
+<div class="w-48 border-b border-outline-variant border-dashed"></div>
+</div>
+<div class="text-center">
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-xl">Le Responsable Financier</p>
+<div class="w-48 border-b border-outline-variant border-dashed"></div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
+
+<!-- CMSFP Architecture & Schema -->
+# CMSFP - Projet de Gestion Financière Medicale
+## Architecture Technique: Wails (Go) + React
+
+### 1. Modèle de Données (SQLite Schema)
+
+```sql
+-- Table des recettes par service
+CREATE TABLE daily_entries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date DATE NOT NULL,
+    service_type TEXT CHECK(service_type IN (
+        'Analyses biologiques', 'GSRH', 'ECG', 'Echocœur', 
+        'Holter ECG', 'MAPA', 'Dentiste', 'Ophtalmologie', 
+        'Imagerie médicale', 'Cardiologie'
+    )),
+    amount INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table des dépenses journalières
+CREATE TABLE daily_expenses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date DATE NOT NULL,
+    description TEXT NOT NULL,
+    amount INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table des honoraires mensuels
+CREATE TABLE monthly_honoraires (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    month INTEGER NOT NULL, -- 1-12
+    year INTEGER NOT NULL,
+    person_name TEXT NOT NULL,
+    role TEXT,
+    amount INTEGER DEFAULT 0
+);
+
+-- Table des investissements
+CREATE TABLE investments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    month INTEGER NOT NULL,
+    year INTEGER NOT NULL,
+    description TEXT,
+    amount INTEGER DEFAULT 0
+);
+
+-- Table des analyses gratuites
+CREATE TABLE free_analyses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    month INTEGER NOT NULL,
+    year INTEGER NOT NULL,
+    category TEXT CHECK(category IN ('agent_etat', 'non_agent')),
+    amount INTEGER DEFAULT 0
+);
+```
+
+### 2. Handlers Go (Wails) - Exemples de signatures
+
+```go
+package main
+
+import (
+	"context"
+	"database/sql"
+)
+
+type App struct {
+	ctx context.Context
+	db  *sql.DB
+}
+
+// Enregistrer les recettes d'une journée
+func (a *App) SaveDailyReceipts(date string, entries map[string]int) error {
+	// Logique d'insertion SQLite
+	return nil
+}
+
+// Récupérer le bilan mensuel
+func (a *App) GetMonthlyReport(month int, year int) (ReportData, error) {
+	// Agrégation SQL (SUM) pour les recettes et dépenses
+	return ReportData{}, nil
+}
+
+// Calculer les honoraires (40% ou 60% des recettes du service)
+func (a *App) CalculateHonoraires(service string, totalReceipts int, percentage float64) int {
+	return int(float64(totalReceipts) * percentage)
+}
+```
+
+### 3. Logique de Calcul des Règles Métier
+- **Profit Mensuel** = Somme(Recettes) - (Somme(Honoraires) + Somme(Dépenses))
+- **Solde Final** = Solde Précédent + Profit Mensuel - Investissements
+- **Remise à zéro hebdo** : Les totaux hebdomadaires sont calculés dynamiquement basés sur le `date` du lundi.
+
+<!-- Bilan Annuel - CMSFP -->
+<!DOCTYPE html>
+
+<html class="light" lang="fr"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Bilan Annuel - CMSFP Dakar</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-tertiary-fixed": "#161c22",
+                      "surface-container-high": "#dce9ff",
+                      "on-primary-container": "#86a0cd",
+                      "inverse-primary": "#adc7f7",
+                      "inverse-surface": "#213145",
+                      "on-tertiary-container": "#989fa6",
+                      "surface-dim": "#cbdbf5",
+                      "on-secondary-container": "#167249",
+                      "surface-container-highest": "#d3e4fe",
+                      "on-surface": "#0b1c30",
+                      "on-secondary-fixed-variant": "#005231",
+                      "tertiary-fixed": "#dde3eb",
+                      "secondary-fixed-dim": "#83d8a6",
+                      "on-primary-fixed": "#001b3c",
+                      "surface-bright": "#f8f9ff",
+                      "primary-fixed-dim": "#adc7f7",
+                      "surface-tint": "#455f88",
+                      "tertiary-container": "#30363c",
+                      "on-error-container": "#93000a",
+                      "secondary-container": "#9ff5c1",
+                      "inverse-on-surface": "#eaf1ff",
+                      "outline": "#74777f",
+                      "tertiary-fixed-dim": "#c1c7cf",
+                      "error": "#ba1a1a",
+                      "on-error": "#ffffff",
+                      "secondary": "#0a6c44",
+                      "surface-container-low": "#eff4ff",
+                      "on-secondary": "#ffffff",
+                      "tertiary": "#1b2127",
+                      "error-container": "#ffdad6",
+                      "on-tertiary": "#ffffff",
+                      "on-secondary-fixed": "#002111",
+                      "on-tertiary-fixed-variant": "#41474e",
+                      "outline-variant": "#c4c6cf",
+                      "surface-variant": "#d3e4fe",
+                      "surface-container-lowest": "#ffffff",
+                      "background": "#f8f9ff",
+                      "primary-fixed": "#d6e3ff",
+                      "secondary-fixed": "#9ff5c1",
+                      "primary": "#002045",
+                      "primary-container": "#1a365d",
+                      "on-primary": "#ffffff",
+                      "on-primary-fixed-variant": "#2d476f",
+                      "surface": "#f8f9ff",
+                      "surface-container": "#e5eeff",
+                      "on-surface-variant": "#43474e",
+                      "on-background": "#0b1c30"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "lg": "24px",
+                      "sidebar-width": "260px",
+                      "md": "16px",
+                      "base": "4px",
+                      "xs": "4px",
+                      "xl": "32px",
+                      "sm": "8px",
+                      "max-content-width": "1440px"
+              },
+              "fontFamily": {
+                      "label-caps": [
+                              "Inter"
+                      ],
+                      "data-mono": [
+                              "JetBrains Mono"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "body-sm": [
+                              "Inter"
+                      ],
+                      "h1": [
+                              "Inter"
+                      ],
+                      "h2": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "label-caps": [
+                              "12px",
+                              {
+                                      "lineHeight": "1",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "data-mono": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.5",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "h1": [
+                              "32px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "h2": [
+                              "24px",
+                              {
+                                      "lineHeight": "1.3",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+            },
+          }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+          font-variation-settings:
+          'FILL' 0,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 24
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-lg min-h-screen flex flex-col md:flex-row">
+<!-- SideNavBar -->
+<nav class="hidden md:flex bg-primary dark:bg-primary-container text-secondary-fixed dark:text-secondary-fixed-dim font-body-sm text-body-sm fixed left-0 top-0 h-full w-sidebar-width border-r border-outline-variant dark:border-outline shadow-sm flex flex-col h-full py-lg z-20">
+<div class="px-4 mb-xl">
+<h1 class="font-h2 text-h2 text-on-primary dark:text-inverse-primary">CMSFP Dakar</h1>
+<p class="text-on-primary/70 mt-xs">Gestion Financière</p>
+</div>
+<ul class="flex flex-col gap-sm flex-1 mt-md">
+<li>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary/70 hover:text-on-primary hover:bg-on-primary-fixed-variant/50 transition-colors active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">edit_calendar</span>
+<span>Saisie du jour</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary/70 hover:text-on-primary hover:bg-on-primary-fixed-variant/50 transition-colors active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">calendar_month</span>
+<span>Rapport mensuel</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 border-l-4 border-secondary-fixed bg-on-primary-fixed-variant text-secondary-fixed hover:bg-on-primary-fixed-variant/50 transition-colors active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">account_balance</span>
+<span>Bilan annuel</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary/70 hover:text-on-primary hover:bg-on-primary-fixed-variant/50 transition-colors active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Paramètres</span>
+</a>
+</li>
+</ul>
+<div class="px-4 mt-auto">
+<div class="flex items-center gap-3 py-3 border-t border-on-primary-fixed-variant pt-4">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center text-primary font-bold">
+                    A
+                </div>
+<div>
+<p class="text-on-primary text-sm font-semibold">Admin</p>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 md:ml-sidebar-width flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<header class="bg-surface dark:bg-surface-dim font-label-caps text-label-caps border-b border-outline-variant dark:border-outline flex justify-between items-center h-16 px-xl sticky top-0 z-10">
+<div class="flex items-center gap-md">
+<h2 class="font-h2 text-h2 font-bold text-primary dark:text-inverse-primary hidden md:block">CMSFP Management</h2>
+<div class="md:hidden flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary cursor-pointer">menu</span>
+<h2 class="font-h2 text-h2 font-bold text-primary">CMSFP</h2>
+</div>
+</div>
+<div class="flex items-center gap-lg">
+<div class="hidden lg:flex items-center bg-surface-container-low rounded-full px-4 py-2 border border-outline-variant focus-within:border-primary transition-colors">
+<span class="material-symbols-outlined text-outline mr-sm">search</span>
+<input class="bg-transparent border-none outline-none text-body-sm w-48 focus:ring-0 placeholder:text-outline p-0" placeholder="Rechercher..." type="text"/>
+</div>
+<div class="flex items-center gap-md">
+<span class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-80">dark_mode</span>
+<span class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-80">notifications</span>
+<span class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors cursor-pointer active:opacity-80">help</span>
+<div class="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-primary ml-sm md:hidden">
+                        A
+                    </div>
+</div>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 p-md md:p-lg lg:p-xl max-w-max-content-width mx-auto w-full">
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-md mb-lg">
+<div>
+<h1 class="font-h1 text-h1 text-on-surface">Bilan Annuel 2023</h1>
+<p class="text-on-surface-variant mt-xs">Synthèse financière de l'exercice en cours.</p>
+</div>
+<div class="flex flex-wrap items-center gap-sm">
+<button class="flex items-center gap-xs px-4 py-2 bg-surface text-primary border border-primary rounded-lg hover:bg-primary-fixed transition-colors text-body-sm font-semibold">
+<span class="material-symbols-outlined text-[20px]">print</span>
+                        Imprimer le bilan
+                    </button>
+<button class="flex items-center gap-xs px-4 py-2 bg-primary text-on-primary rounded-lg hover:bg-primary-container transition-colors text-body-sm font-semibold shadow-sm">
+<span class="material-symbols-outlined text-[20px]">download</span>
+                        Exporter vers Excel
+                    </button>
+</div>
+</div>
+<!-- Summary Cards (Bento style) -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-md mb-lg">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-[0_1px_3px_rgba(0,0,0,0.05)] flex flex-col justify-between">
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-sm">Solde Initial</p>
+<p class="font-data-mono text-data-mono text-[24px] font-bold text-on-surface">15 450 000</p>
+<p class="text-body-sm text-outline mt-1">FCFA</p>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-[0_1px_3px_rgba(0,0,0,0.05)] flex flex-col justify-between">
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-sm">Total Recettes</p>
+<p class="font-data-mono text-data-mono text-[24px] font-bold text-secondary">245 800 500</p>
+<p class="text-body-sm text-outline mt-1">FCFA</p>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-md shadow-[0_1px_3px_rgba(0,0,0,0.05)] flex flex-col justify-between">
+<p class="font-label-caps text-label-caps text-on-surface-variant uppercase mb-sm">Total Dépenses</p>
+<p class="font-data-mono text-data-mono text-[24px] font-bold text-error">198 250 300</p>
+<p class="text-body-sm text-outline mt-1">FCFA</p>
+</div>
+<div class="bg-primary border border-primary-container rounded-xl p-md shadow-sm flex flex-col justify-between">
+<p class="font-label-caps text-label-caps text-on-primary/80 uppercase mb-sm">Solde de Clôture</p>
+<p class="font-data-mono text-data-mono text-[24px] font-bold text-secondary-fixed">62 999 800</p>
+<p class="text-body-sm text-on-primary/60 mt-1">FCFA</p>
+</div>
+</div>
+<!-- Data Table Container -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05)] overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse min-w-[1000px]">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant">
+<th class="py-3 px-4 font-label-caps text-label-caps text-on-surface uppercase whitespace-nowrap sticky left-0 bg-surface-container-low z-10">Mois</th>
+<th class="py-3 px-4 font-label-caps text-label-caps text-on-surface uppercase text-right whitespace-nowrap">Solde Précédent</th>
+<th class="py-3 px-4 font-label-caps text-label-caps text-on-surface uppercase text-right whitespace-nowrap">Recettes Totales</th>
+<th class="py-3 px-4 font-label-caps text-label-caps text-on-surface uppercase text-right whitespace-nowrap">Dépenses Personnel</th>
+<th class="py-3 px-4 font-label-caps text-label-caps text-on-surface uppercase text-right whitespace-nowrap">Autres Dépenses</th>
+<th class="py-3 px-4 font-label-caps text-label-caps text-on-surface uppercase text-right whitespace-nowrap">Investissements</th>
+<th class="py-3 px-4 font-label-caps text-label-caps text-on-surface uppercase text-right whitespace-nowrap">Bénéfice</th>
+<th class="py-3 px-4 font-label-caps text-label-caps text-on-surface uppercase text-right whitespace-nowrap bg-surface-container-low">Solde de Clôture</th>
+</tr>
+</thead>
+<tbody class="text-body-sm text-on-surface">
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-highest transition-colors">
+<td class="py-3 px-4 font-semibold sticky left-0 bg-surface-container-lowest">Janvier</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono">15 450 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono text-secondary">20 500 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono">12 000 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono">4 500 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono">1 000 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono text-secondary">+3 000 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono font-bold bg-surface-container-lowest">18 450 000</td>
+</tr>
+<tr class="border-b border-outline-variant/50 bg-primary/2 hover:bg-surface-container-highest transition-colors">
+<td class="py-3 px-4 font-semibold sticky left-0 bg-surface-bright">Février</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono">18 450 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono text-secondary">19 800 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono">12 000 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono">5 200 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono">0</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono text-secondary">+2 600 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono font-bold bg-surface-bright">21 050 000</td>
+</tr>
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-highest transition-colors">
+<td class="py-3 px-4 font-semibold sticky left-0 bg-surface-container-lowest">Mars</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono">21 050 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono text-secondary">22 100 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono">12 000 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono">4 800 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono">2 500 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono text-secondary">+2 800 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono font-bold bg-surface-container-lowest">23 850 000</td>
+</tr>
+<!-- Placeholder for other months to keep code brief -->
+<tr class="border-b border-outline-variant/50 bg-primary/2 hover:bg-surface-container-highest transition-colors">
+<td class="py-3 px-4 font-semibold sticky left-0 bg-surface-bright text-outline italic">Avril à Novembre...</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono text-outline">...</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono text-outline">...</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono text-outline">...</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono text-outline">...</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono text-outline">...</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono text-outline">...</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono font-bold bg-surface-bright text-outline">...</td>
+</tr>
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-highest transition-colors">
+<td class="py-3 px-4 font-semibold sticky left-0 bg-surface-container-lowest">Décembre</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono">58 200 800</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono text-secondary">25 400 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono">13 500 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono">6 100 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono">1 000 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono text-secondary">+4 800 000</td>
+<td class="py-3 px-4 text-right font-data-mono text-data-mono font-bold bg-surface-container-lowest">63 000 800</td>
+</tr>
+</tbody>
+<tfoot>
+<tr class="bg-surface-container-low border-t-2 border-outline font-bold text-on-surface">
+<td class="py-4 px-4 sticky left-0 bg-surface-container-low uppercase font-label-caps text-label-caps">Total Annuel</td>
+<td class="py-4 px-4 text-right font-data-mono text-data-mono">-</td>
+<td class="py-4 px-4 text-right font-data-mono text-data-mono text-secondary">245 800 500</td>
+<td class="py-4 px-4 text-right font-data-mono text-data-mono">152 500 000</td>
+<td class="py-4 px-4 text-right font-data-mono text-data-mono">61 250 300</td>
+<td class="py-4 px-4 text-right font-data-mono text-data-mono">14 500 000</td>
+<td class="py-4 px-4 text-right font-data-mono text-data-mono text-secondary">+17 550 200</td>
+<td class="py-4 px-4 text-right font-data-mono text-data-mono bg-surface-container-low text-primary">63 000 800</td>
+</tr>
+</tfoot>
+</table>
+</div>
+</div>
+</main>
+</div>
+</body></html>
