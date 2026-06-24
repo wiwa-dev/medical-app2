@@ -17,13 +17,15 @@ import {Logout} from "../../../../../wailsjs/go/main/App";
         <!-- Logo -->
         <div class="mb-8 px-4">
           <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 bg-primary-container rounded-lg flex items-center justify-center flex-shrink-0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-              </svg>
+            <div class="w-8 h-8 bg-on-primary-container rounded-lg flex items-center justify-center flex-shrink-0">
+<!--              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">-->
+<!--                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>-->
+<!--              </svg>-->
+              <img src="assets/appicon.png" alt="CAREX logo" class="w-16 h-16 rounded-xl object-contain flex-shrink-0">
+
             </div>
             <div>
-              <h1 class="font-headline-md text-[17px] font-bold text-primary-fixed leading-none">CARE~X</h1>
+              <h1 class="font-headline-md text-[17px] font-bold text-primary-fixed leading-none">FINCARE~X</h1>
               <p class="text-[11px] text-surface-variant mt-0.5">SIF Medical Software</p>
             </div>
           </div>

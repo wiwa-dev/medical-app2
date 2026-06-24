@@ -13,6 +13,7 @@ import {
   GetAnnualReport,
   ExportAnnualExcel,
   ExportDailyPDF,
+  GenerateDecharge,
   GetYearSettings,
   SetInitialBalance,
   OpenDoc,
@@ -197,5 +198,9 @@ export class FinanceService {
   // ── PDF Export ──────────────────────────────────────────────
   exportDailyPDF(date: string): Promise<string> {
     return ExportDailyPDF(date);
+  }
+
+  generateDecharge(date: string, description: string, amount: number, beneficiaryName: string, cin: string): Promise<string> {
+    return GenerateDecharge(date, description, amount, beneficiaryName, cin);
   }
 }

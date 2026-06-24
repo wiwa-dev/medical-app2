@@ -1,6 +1,8 @@
 package main
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -16,6 +18,7 @@ import (
 	"time"
 
 	"github.com/jung-kurt/gofpdf"
+	"github.com/lukasjarosch/go-docx"
 	run "github.com/wailsapp/wails/v2/pkg/runtime"
 	"github.com/xuri/excelize/v2"
 	"golang.org/x/crypto/bcrypt"
@@ -23,7 +26,7 @@ import (
 
 var currentUser *models.User
 
-// App struct
+// App struct.
 type App struct {
 	ctx context.Context
 }
@@ -455,7 +458,7 @@ func (a *App) GetMonthlyReport(month, year int) (models.MonthlyReport, error) {
 		totalReceipts += sv.Amount
 	}
 
-	// Get active services in order for report rows
+	// Get active services in order to report rows
 	var activeServices []models.MedicalService
 	db.Where("active = ?", true).Order("sort_order").Find(&activeServices)
 
@@ -967,7 +970,7 @@ func (a *App) ExportDailyPDF(date string) (string, error) {
 	for _, se := range supplierExpenses {
 		totalSupplierExp += se.Amount
 	}
-	netBalance := totalReceipts - totalExpenses - totalSupplierExp
+	//netBalance := totalReceipts - totalExpenses - totalSupplierExp
 
 	// Create PDF
 	pdf := gofpdf.New("P", "mm", "A4", "")
@@ -1001,7 +1004,7 @@ func (a *App) ExportDailyPDF(date string) (string, error) {
 		{"Total Recettes (FCFA)", totalReceipts, []int{0, 150, 0}},
 		{"Total Depenses (FCFA)", totalExpenses, []int{200, 0, 0}},
 		{"Depenses Fournisseurs (FCFA)", totalSupplierExp, []int{200, 100, 0}},
-		{"Solde Net (FCFA)", netBalance, []int{0, 80, 160}},
+		//{"Solde Net (FCFA)", netBalance, []int{0, 80, 160}},
 	}
 
 	for _, sd := range summaryData {
@@ -1030,15 +1033,31 @@ func (a *App) ExportDailyPDF(date string) (string, error) {
 
 	// Table rows
 	pdf.SetFont("Helvetica", "", 8)
+	lineH := 5.0
 	fill := false
 	for _, sv := range entry.ServiceValues {
+		svName := toLatin1(sv.ServiceName)
+		splitName := pdf.SplitText(svName, 140)
+		numLines := len(splitName)
+		rowH := float64(numLines) * lineH
+
+		x0 := pdf.GetX()
+		y0 := pdf.GetY()
+
 		if fill {
 			pdf.SetFillColor(240, 244, 250)
 		} else {
 			pdf.SetFillColor(255, 255, 255)
 		}
-		pdf.CellFormat(140, 6, sv.ServiceName, "1", 0, "L", true, 0, "")
-		pdf.CellFormat(50, 6, fmt.Sprintf("%.0f", sv.Amount), "1", 1, "R", true, 0, "")
+		pdf.Rect(x0, y0, 190, rowH, "FD")
+
+		pdf.SetXY(x0, y0+0.5)
+		pdf.MultiCell(140, lineH, svName, "", "L", false)
+
+		pdf.Line(x0+140, y0, x0+140, y0+rowH)
+
+		pdf.SetXY(x0+140, y0)
+		pdf.CellFormat(50, rowH, fmt.Sprintf("%.0f", sv.Amount), "", 1, "R", false, 0, "")
 		fill = !fill
 	}
 	// Total row
@@ -1063,19 +1082,35 @@ func (a *App) ExportDailyPDF(date string) (string, error) {
 
 	// Table rows
 	pdf.SetFont("Helvetica", "", 8)
+	lineH = 5.0
 	fill = false
 	for _, e := range entry.Expenses {
+		desc := e.Description
+		if desc == "" {
+			desc = "-"
+		}
+		desc = toLatin1(desc)
+		splitDesc := pdf.SplitText(desc, 140)
+		numLines := len(splitDesc)
+		rowH := float64(numLines) * lineH
+
+		x0 := pdf.GetX()
+		y0 := pdf.GetY()
+
 		if fill {
 			pdf.SetFillColor(240, 244, 250)
 		} else {
 			pdf.SetFillColor(255, 255, 255)
 		}
-		desc := e.Description
-		if desc == "" {
-			desc = "-"
-		}
-		pdf.CellFormat(140, 6, desc, "1", 0, "L", true, 0, "")
-		pdf.CellFormat(50, 6, fmt.Sprintf("%.0f", e.Amount), "1", 1, "R", true, 0, "")
+		pdf.Rect(x0, y0, 190, rowH, "FD")
+
+		pdf.SetXY(x0, y0+0.5)
+		pdf.MultiCell(140, lineH, desc, "", "L", false)
+
+		pdf.Line(x0+140, y0, x0+140, y0+rowH)
+
+		pdf.SetXY(x0+140, y0)
+		pdf.CellFormat(50, rowH, fmt.Sprintf("%.0f", e.Amount), "", 1, "R", false, 0, "")
 		fill = !fill
 	}
 	// Total row
@@ -1102,6 +1137,7 @@ func (a *App) ExportDailyPDF(date string) (string, error) {
 
 		// Table rows
 		pdf.SetFont("Helvetica", "", 8)
+		lineH = 5.0
 		fill = false
 		for _, sr := range supplierRows {
 			if fill {
@@ -1109,13 +1145,37 @@ func (a *App) ExportDailyPDF(date string) (string, error) {
 			} else {
 				pdf.SetFillColor(255, 255, 255)
 			}
+			supplierName := toLatin1(sr.SupplierName)
 			desc := sr.Description
 			if desc == "" {
 				desc = "-"
 			}
-			pdf.CellFormat(60, 6, sr.SupplierName, "1", 0, "L", true, 0, "")
-			pdf.CellFormat(80, 6, desc, "1", 0, "L", true, 0, "")
-			pdf.CellFormat(50, 6, fmt.Sprintf("%.0f", sr.Amount), "1", 1, "R", true, 0, "")
+			desc = toLatin1(desc)
+			splitName := pdf.SplitText(supplierName, 60)
+			splitDesc := pdf.SplitText(desc, 80)
+			numLines := len(splitName)
+			if len(splitDesc) > numLines {
+				numLines = len(splitDesc)
+			}
+			rowH := float64(numLines) * lineH
+
+			x0 := pdf.GetX()
+			y0 := pdf.GetY()
+
+			pdf.Rect(x0, y0, 190, rowH, "FD")
+
+			pdf.SetXY(x0, y0+0.5)
+			pdf.MultiCell(60, lineH, supplierName, "", "L", false)
+
+			pdf.Line(x0+60, y0, x0+60, y0+rowH)
+
+			pdf.SetXY(x0+60, y0+0.5)
+			pdf.MultiCell(80, lineH, desc, "", "L", false)
+
+			pdf.Line(x0+140, y0, x0+140, y0+rowH)
+
+			pdf.SetXY(x0+140, y0)
+			pdf.CellFormat(50, rowH, fmt.Sprintf("%.0f", sr.Amount), "", 1, "R", false, 0, "")
 			fill = !fill
 		}
 		// Total row
@@ -1141,7 +1201,196 @@ func (a *App) ExportDailyPDF(date string) (string, error) {
 	return filePath, nil
 }
 
+// createDechargeTemplateBytes generates a minimal DOCX template containing
+// placeholder markers ({BENEFICIARY}, {AMOUNT}, {AMOUNT_WORDS}, {DESCRIPTION},
+// {DATE}, {CIN}) that will be replaced at runtime with actual values.
+func createDechargeTemplateBytes() ([]byte, error) {
+	buf := new(bytes.Buffer)
+	w := zip.NewWriter(buf)
+
+	// [Content_Types].xml
+	typesContent := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`)
+	f, _ := w.Create("[Content_Types].xml")
+	f.Write(typesContent)
+
+	// _rels/.rels
+	relsContent := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`)
+	f, _ = w.Create("_rels/.rels")
+	f.Write(relsContent)
+
+	// word/_rels/document.xml.rels
+	docRelsContent := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+</Relationships>`)
+	f, _ = w.Create("word/_rels/document.xml.rels")
+	f.Write(docRelsContent)
+
+	// word/document.xml – formatted discharge template with placeholders
+	docContent := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+    <!-- Title: DECHARGE (bold, centered, 26pt) -->
+    <w:p>
+      <w:pPr>
+        <w:jc w:val="center"/>
+        <w:spacing w:after="400"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:b/>
+          <w:sz w:val="40"/>
+        </w:rPr>
+        <w:t>DECHARGE</w:t>
+      </w:r>
+    </w:p>
+
+    <!-- Body text (12pt) -->
+    <w:p>
+      <w:pPr>
+        <w:spacing w:after="400"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:sz w:val="28"/>
+        </w:rPr>
+        <w:t xml:space="preserve">Je soussigné(e), {BENEFICIARY} déclare avoir recu la somme de {AMOUNT} ({AMOUNT_WORDS} francs CFA) pour {DESCRIPTION}.</w:t>
+      </w:r>
+    </w:p>
+
+    <!-- Date line -->
+    <w:p>
+      <w:pPr>
+        <w:jc w:val="left"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:sz w:val="28"/>
+        </w:rPr>
+        <w:t>Dakar, {DATE}</w:t>
+      </w:r>
+    </w:p>
+
+    <!-- CIN line -->
+    <w:p>
+      <w:pPr>
+        <w:jc w:val="left"/>
+        <w:spacing w:after="400"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:sz w:val="28"/>
+        </w:rPr>
+        <w:t>CIN: {CIN}</w:t>
+      </w:r>
+    </w:p>
+
+    <!-- Signature -->
+    <w:p>
+      <w:pPr>
+        <w:jc w:val="left"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:sz w:val="28"/>
+        </w:rPr>
+        <w:t>Signature</w:t>
+      </w:r>
+    </w:p>
+  </w:body>
+</w:document>`)
+	f, _ = w.Create("word/document.xml")
+	f.Write(docContent)
+
+	if err := w.Close(); err != nil {
+		return nil, fmt.Errorf("failed to finalize DOCX template: %w", err)
+	}
+	return buf.Bytes(), nil
+}
+
+// GenerateDecharge generates a DOCX discharge/receipt for an expense using
+// the DECHARGE MELVYN 1.docx template with placeholder replacement.
+func (a *App) GenerateDecharge(date string, description string, amount float64, beneficiaryName string, cin string) (string, error) {
+	templateBytes, err := createDechargeTemplateBytes()
+	if err != nil {
+		return "", fmt.Errorf("failed to create template: %w", err)
+	}
+
+	doc, err := docx.OpenBytes(templateBytes)
+	if err != nil {
+		return "", fmt.Errorf("failed to open DOCX template: %w", err)
+	}
+	defer doc.Close()
+
+	amountInt := int(amount)
+	words := numberToWords(amountInt)
+
+	// Format date
+	parsedDate, err := time.Parse("2006-01-02", date)
+	dateStr := date
+	if err == nil {
+		monthsFR := map[time.Month]string{
+			time.January: "Janvier", time.February: "Fevrier", time.March: "Mars",
+			time.April: "Avril", time.May: "Mai", time.June: "Juin",
+			time.July: "Juillet", time.August: "Aout", time.September: "Septembre",
+			time.October: "Octobre", time.November: "Novembre", time.December: "Decembre",
+		}
+		dateStr = fmt.Sprintf("le %d %s %d", parsedDate.Day(), monthsFR[parsedDate.Month()], parsedDate.Year())
+	}
+
+	replaceMap := docx.PlaceholderMap{
+		"BENEFICIARY":  beneficiaryName,
+		"AMOUNT":       fmt.Sprintf("%d", amountInt),
+		"AMOUNT_WORDS": words,
+		"DESCRIPTION":  description,
+		"DATE":         dateStr,
+		"CIN":          cin,
+	}
+
+	if err := doc.ReplaceAll(replaceMap); err != nil {
+		return "", fmt.Errorf("failed to replace placeholders: %w", err)
+	}
+
+	dir := config.GetExportsDir()
+	filePath := filepath.Join(dir, fmt.Sprintf("decharge_%s_%d.docx", date, time.Now().Unix()))
+	if err := doc.WriteToFile(filePath); err != nil {
+		return "", fmt.Errorf("failed to save DOCX: %w", err)
+	}
+	return filePath, nil
+}
+
 // --- HELPERS ---
+
+// toLatin1 transliterates French UTF-8 accented characters to their ASCII
+// equivalents, so they render correctly with gofpdf's built-in Helvetica font
+// (which only supports Latin-1/cp1252 encoding).
+func toLatin1(s string) string {
+	replacer := strings.NewReplacer(
+		"é", "e", "è", "e", "ê", "e", "ë", "e",
+		"É", "E", "È", "E", "Ê", "E", "Ë", "E",
+		"à", "a", "â", "a", "ä", "a",
+		"À", "A", "Â", "A", "Ä", "A",
+		"ô", "o", "ö", "o",
+		"Ô", "O", "Ö", "O",
+		"ù", "u", "û", "u", "ü", "u",
+		"Ù", "U", "Û", "U", "Ü", "U",
+		"î", "i", "ï", "i",
+		"Î", "I", "Ï", "I",
+		"ç", "c", "Ç", "C",
+		"\u2018", "'", "\u2019", "'", "\u201b", "'",
+		"\u201c", "\"", "\u201d", "\"", "\u201e", "\"",
+		"\u2013", "-", "\u2014", "-",
+		"\u00a0", " ", // non-breaking space
+	)
+	return replacer.Replace(s)
+}
 
 // sumServiceValues returns total receipts from DailyServiceValue for a date range.
 func sumServiceValues(firstStr, lastStr string) float64 {
@@ -1224,4 +1473,101 @@ func (a *App) computeBalanceUpTo(month, year int) float64 {
 		balance = balance + profit - invTotal
 	}
 	return balance
+}
+
+// numberToWords converts an integer amount to French words (e.g. 250000 → "deux cent cinquante mille").
+func numberToWords(amount int) string {
+	if amount == 0 {
+		return "zéro"
+	}
+
+	units := []string{"", "un", "deux", "trois", "quatre", "cinq", "six", "sept", "huit", "neuf",
+		"dix", "onze", "douze", "treize", "quatorze", "quinze", "seize", "dix-sept", "dix-huit", "dix-neuf"}
+
+	tens := []string{"", "dix", "vingt", "trente", "quarante", "cinquante", "soixante",
+		"soixante-dix", "quatre-vingt", "quatre-vingt-dix"}
+
+	var f func(n int) string
+	f = func(n int) string {
+		if n == 0 {
+			return ""
+		}
+		var parts []string
+		h := n / 100
+		r := n % 100
+		if h > 0 {
+			if h == 1 {
+				parts = append(parts, "cent")
+			} else {
+				parts = append(parts, f(h), "cent")
+			}
+		}
+		if r > 0 {
+			if r < 20 {
+				parts = append(parts, units[r])
+			} else {
+				t := r / 10
+				u := r % 10
+				switch t {
+				case 7:
+					if u == 1 {
+						parts = append(parts, "soixante-et-onze")
+					} else {
+						parts = append(parts, "soixante-"+units[10+u])
+					}
+				case 9:
+					if u == 1 {
+						parts = append(parts, "quatre-vingt-onze")
+					} else {
+						parts = append(parts, "quatre-vingt-"+units[10+u])
+					}
+				default:
+					base := tens[t]
+					if u == 1 && t != 8 {
+						base += "-et-un"
+					} else if u > 0 {
+						base += "-" + units[u]
+					}
+					parts = append(parts, base)
+				}
+			}
+		}
+		return strings.Join(parts, " ")
+	}
+
+	var result string
+	mil := amount / 1000000
+	rem := amount % 1000000
+	if mil > 0 {
+		if mil == 1 {
+			result = "un million"
+		} else {
+			result = f(mil) + " millions"
+		}
+	}
+
+	th := rem / 1000
+	rem = rem % 1000
+	if th > 0 {
+		if result != "" {
+			result += " "
+		}
+		if th == 1 {
+			result += "mille"
+		} else {
+			result += f(th) + " mille"
+		}
+	}
+
+	if rem > 0 {
+		if result != "" {
+			result += " "
+		}
+		result += f(rem)
+	}
+
+	if result == "" {
+		return "zéro"
+	}
+	return result
 }

@@ -20,6 +20,8 @@ export function ExportAnnualExcel(arg1:number):Promise<string>;
 
 export function ExportDailyPDF(arg1:string):Promise<string>;
 
+export function GenerateDecharge(arg1:string,arg2:string,arg3:number,arg4:string,arg5:string):Promise<string>;
+
 export function GetAllSuppliers():Promise<Array<models.Supplier>>;
 
 export function GetAnnualReport(arg1:number):Promise<models.AnnualReport>;

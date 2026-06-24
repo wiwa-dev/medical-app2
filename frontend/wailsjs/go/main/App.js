@@ -38,6 +38,10 @@ export function ExportDailyPDF(arg1) {
   return window['go']['main']['App']['ExportDailyPDF'](arg1);
 }
 
+export function GenerateDecharge(arg1, arg2, arg3, arg4, arg5) {
+  return window['go']['main']['App']['GenerateDecharge'](arg1, arg2, arg3, arg4, arg5);
+}
+
 export function GetAllSuppliers() {
   return window['go']['main']['App']['GetAllSuppliers']();
 }

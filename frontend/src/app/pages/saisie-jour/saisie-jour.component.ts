@@ -165,6 +165,11 @@ interface ExpenseRow {
                    class="flex-1 border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface bg-transparent hover:bg-surface-container focus:bg-surface-container-lowest focus:border-primary focus:outline-none transition-all" />
             <input type="number" min="0" [(ngModel)]="exp.amount" placeholder="0"
                    class="med-input w-32 font-data-tabular text-data-tabular border border-outline-variant rounded-lg" />
+            <button type="button" (click)="openDechargeModal($index)"
+                    class="p-2 text-tertiary hover:bg-tertiary-container/20 rounded-lg transition-colors"
+                    title="Generer une decharge">
+              <span class="material-symbols-outlined" style="font-size: 18px;">description</span>
+            </button>
             @if (expenses.length > 1) {
               <button type="button" (click)="removeExpense($index)"
                       class="p-2 text-on-surface-variant hover:text-error transition-colors rounded-lg hover:bg-error-container/20">
@@ -276,12 +281,79 @@ interface ExpenseRow {
     </div>
   </div>
 
+  <!-- ── Decharge Modal ── -->
+  @if (dechargeTarget !== null) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" (click)="closeDechargeModal()">
+      <div class="bg-surface rounded-xl shadow-xl max-w-md w-full mx-4 p-6" (click)="$event.stopPropagation()">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2">
+            <span class="material-symbols-outlined text-tertiary" style="font-size: 20px;">description</span>
+            Generer une decharge
+          </h3>
+          <button (click)="closeDechargeModal()" class="p-2 text-on-surface-variant hover:text-error rounded-lg transition-colors">
+            <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+          </button>
+        </div>
+        <!-- Form -->
+        <div class="space-y-4">
+          <div>
+            <label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">Motif</label>
+            <input type="text" [value]="dechargeDescription" readonly
+                   class="w-full border border-outline-variant rounded-lg px-3 py-2 font-body-md bg-surface-container-low text-on-surface-variant cursor-not-allowed" />
+          </div>
+          <div>
+            <label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">Montant (FCFA)</label>
+            <input type="number" [value]="dechargeAmount" readonly
+                   class="w-full border border-outline-variant rounded-lg px-3 py-2 font-data-tabular bg-surface-container-low text-on-surface-variant cursor-not-allowed" />
+          </div>
+          <div>
+            <label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">
+              Nom du beneficiaire <span class="text-error">*</span>
+            </label>
+            <input type="text" [(ngModel)]="dechargeBeneficiary" placeholder="Ex: Seydina Issa FAYE"
+                   class="w-full border border-outline-variant rounded-lg px-3 py-2 font-body-md bg-surface-container-lowest focus:border-primary focus:outline-none" />
+          </div>
+          <div>
+            <label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">
+              N CIN / Piece d identite <span class="text-error">*</span>
+            </label>
+            <input type="text" [(ngModel)]="dechargeCin" placeholder="Ex: 1758199600047"
+                   class="w-full border border-outline-variant rounded-lg px-3 py-2 font-body-md bg-surface-container-lowest focus:border-primary focus:outline-none" />
+          </div>
+        </div>
+        <!-- Actions -->
+        <div class="flex justify-end gap-3 mt-6">
+          <button (click)="closeDechargeModal()"
+                  class="px-4 py-2 border border-outline-variant text-on-surface rounded-lg font-label-caps text-label-caps uppercase hover:bg-surface-container-low transition-colors">
+            Annuler
+          </button>
+          <button (click)="generateDecharge()" [disabled]="dechargeGenerating"
+                  class="px-4 py-2 bg-tertiary text-on-tertiary rounded-lg font-label-caps text-label-caps uppercase hover:bg-tertiary/90 transition-colors shadow-sm disabled:opacity-60 flex items-center gap-2">
+            @if (dechargeGenerating) {
+              <span class="material-symbols-outlined animate-spin" style="font-size: 16px;">progress_activity</span>
+            }
+            {{ dechargeGenerating ? 'Generation...' : 'Generer le PDF' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
 </div>
   `,
 })
 export class SaisieJourComponent implements OnInit {
   private financeService = inject(FinanceService);
   private toast = inject(ToastService);
+
+  // Decharge modal state
+  dechargeTarget: number | null = null;
+  dechargeDescription = '';
+  dechargeAmount = 0;
+  dechargeBeneficiary = '';
+  dechargeCin = '';
+  dechargeGenerating = false;
 
   todayLabel = '';
   selectedDate = toDateStr(new Date());
@@ -436,6 +508,57 @@ export class SaisieJourComponent implements OnInit {
       await this.financeService.openDoc(filePath);
     } catch (err) {
       this.toast.error('Erreur lors de la génération du PDF: ' + err);
+    }
+  }
+
+  // ── Decharge Modal ─────────────────────────────────────────
+  openDechargeModal(index: number): void {
+    const exp = this.expenses[index];
+    this.dechargeTarget = index;
+    this.dechargeDescription = exp.description;
+    this.dechargeAmount = exp.amount;
+    this.dechargeBeneficiary = '';
+    this.dechargeCin = '';
+  }
+
+  closeDechargeModal(): void {
+    this.dechargeTarget = null;
+    this.dechargeDescription = '';
+    this.dechargeAmount = 0;
+    this.dechargeBeneficiary = '';
+    this.dechargeCin = '';
+    this.dechargeGenerating = false;
+  }
+
+  async generateDecharge(): Promise<void> {
+    if (!this.dechargeBeneficiary.trim()) {
+      this.toast.error('Veuillez saisir le nom du beneficiaire');
+      return;
+    }
+    if (!this.dechargeCin.trim()) {
+      this.toast.error('Veuillez saisir le numero CIN');
+      return;
+    }
+    if (this.dechargeAmount <= 0) {
+      this.toast.error('Le montant doit etre superieur a 0');
+      return;
+    }
+    this.dechargeGenerating = true;
+    try {
+      const filePath = await this.financeService.generateDecharge(
+        this.selectedDate,
+        this.dechargeDescription,
+        this.dechargeAmount,
+        this.dechargeBeneficiary.trim(),
+        this.dechargeCin.trim(),
+      );
+      this.toast.success('Decharge generee avec succes');
+      this.closeDechargeModal();
+      await this.financeService.openDoc(filePath);
+    } catch (err) {
+      this.toast.error('Erreur lors de la generation: ' + err);
+    } finally {
+      this.dechargeGenerating = false;
     }
   }
 
