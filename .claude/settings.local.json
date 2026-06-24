@@ -5,7 +5,8 @@
       "Bash(ls /c/Users/wiwadev/medical-app2/*.xlsx)",
       "Bash(ls /c/Users/wiwadev/medical-app2/*.xls)",
       "Bash(find /c/Users/wiwadev/medical-app2/pkg -name *.go)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(npm install:*)"
     ]
   }
 }

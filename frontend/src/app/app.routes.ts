@@ -5,6 +5,7 @@ import {LoginComponent} from "./pages/login/login.component";
 import {SaisieJourComponent} from "./pages/saisie-jour/saisie-jour.component";
 import {RapportMensuelComponent} from "./pages/rapport-mensuel/rapport-mensuel.component";
 import {BilanAnnuelComponent} from "./pages/bilan-annuel/bilan-annuel.component";
+import {GestionFournisseursComponent} from "./pages/gestion-fournisseurs/gestion-fournisseurs.component";
 
 export const routes: Routes = [
   {
@@ -26,6 +27,7 @@ export const routes: Routes = [
       { path: 'saisie', component: SaisieJourComponent },
       { path: 'rapport-mensuel', component: RapportMensuelComponent },
       { path: 'bilan-annuel', component: BilanAnnuelComponent },
+      { path: 'gestion-fournisseurs', component: GestionFournisseursComponent },
       { path: 'settings', component: SettingsComponent },
     ]
   },

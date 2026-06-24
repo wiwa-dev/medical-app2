@@ -43,12 +43,19 @@ import {Logout} from "../../../../../wailsjs/go/main/App";
           <span class="font-body-md text-body-md">Rapport mensuel</span>
         </a>
 
+       
+
+        <a routerLink="/gestion-fournisseurs" routerLinkActive="bg-primary-container text-on-primary-container"
+           class="flex items-center gap-3 px-4 py-3 text-surface-variant hover:bg-secondary-fixed-dim/10 rounded-lg cursor-pointer active:scale-95 transition-all">
+          <span class="material-symbols-outlined" style="font-size: 20px;">inventory_2</span>
+          <span class="font-body-md text-body-md">Gestion fournisseurs</span>
+        </a>
+        
         <a routerLink="/bilan-annuel" routerLinkActive="bg-primary-container text-on-primary-container"
            class="flex items-center gap-3 px-4 py-3 text-surface-variant hover:bg-secondary-fixed-dim/10 rounded-lg cursor-pointer active:scale-95 transition-all">
           <span class="material-symbols-outlined" style="font-size: 20px;">assessment</span>
           <span class="font-body-md text-body-md">Bilan annuel</span>
         </a>
-
         <!-- Settings (admin only) -->
         <div class="mt-auto">
           @if (currentUser?.Isadmin) {

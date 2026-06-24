@@ -1,7 +1,13 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { FinanceService, DailyEntry, DailyExpense, DayHistoryRow, toDateStr, mondayOf } from '../../core/services/finance.service';
+import {
+  FinanceService,
+  DailyServiceValue,
+  DayHistoryRow,
+  MedicalService,
+  toDateStr,
+} from '../../core/services/finance.service';
 import { ToastService } from '../../core/services/toast.service';
 
 interface ExpenseRow {
@@ -88,54 +94,62 @@ interface ExpenseRow {
         <h3 class="font-headline-sm text-headline-sm text-on-surface">Recettes par Service</h3>
         <span class="font-label-caps text-label-caps uppercase text-secondary">Montants en FCFA</span>
       </div>
-      <div class="table-scroll overflow-x-auto">
-        <table class="w-full text-left border-collapse">
-          <thead>
-            <tr class="bg-surface-container-low border-b border-outline-variant">
-              <th class="font-label-caps text-label-caps text-secondary uppercase px-4 py-3 sticky left-0 bg-surface-container-low z-10 w-28">Date</th>
-              @for (svc of services; track svc.key) {
-                <th class="font-label-caps text-label-caps text-secondary uppercase px-2 py-3 text-right min-w-[80px]">{{ svc.shortLabel }}</th>
-              }
-              <th class="font-label-caps text-label-caps text-error uppercase px-2 py-3 text-right bg-error-container/10 border-l border-outline-variant/50 min-w-[90px]">Dépenses</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-outline-variant/50">
-            <tr class="group">
-              <td class="font-body-md text-body-md px-4 py-2 sticky left-0 bg-primary/5 font-medium text-primary whitespace-nowrap">
-                {{ formatDate(selectedDate) }}
-              </td>
-              @for (svc of services; track svc.key) {
-                <td class="px-2 py-1">
-                  <input [(ngModel)]="entry[svc.key]"
-                         type="number" min="0"
-                         class="med-input font-data-tabular text-data-tabular"
-                         placeholder="0" />
+
+      @if (servicesLoading) {
+        <div class="flex items-center justify-center py-10 gap-2 text-on-surface-variant">
+          <span class="material-symbols-outlined animate-spin" style="font-size:20px">progress_activity</span>
+          <span class="text-sm">Chargement des services…</span>
+        </div>
+      } @else {
+        <div class="table-scroll overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-surface-container-low border-b border-outline-variant">
+                <th class="font-label-caps text-label-caps text-secondary uppercase px-4 py-3 sticky left-0 bg-surface-container-low w-28">Date</th>
+                @for (svc of services; track svc.Name) {
+                  <th class="font-label-caps text-label-caps text-secondary uppercase px-2 py-3 text-right min-w-[80px]">{{ svc.ShortLabel }}</th>
+                }
+                <th class="font-label-caps text-label-caps text-error uppercase px-2 py-3 text-right bg-error-container/10 border-l border-outline-variant/50 min-w-[90px]">Dépenses</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-outline-variant/50">
+              <tr class="group">
+                <td class="font-body-md text-body-md px-4 py-2 sticky left-0 bg-primary/5 font-medium text-primary whitespace-nowrap">
+                  {{ formatDate(selectedDate) }}
                 </td>
-              }
-              <td class="px-2 py-1 bg-error-container/5 border-l border-outline-variant/50">
-                <span class="font-data-tabular text-data-tabular text-error block text-right px-2">
+                @for (svc of services; track svc.Name) {
+                  <td class="px-2 py-1">
+                    <input [(ngModel)]="entry[svc.Name]"
+                           type="number" min="0"
+                           class="med-input font-data-tabular text-data-tabular"
+                           placeholder="0" />
+                  </td>
+                }
+                <td class="px-2 py-1 bg-error-container/5 border-l border-outline-variant/50">
+                  <span class="font-data-tabular text-data-tabular text-error block text-right px-2">
+                    {{ totalExpenses | number:'1.0-0' }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="bg-surface-container-low border-t-2 border-outline-variant">
+                <td class="font-label-caps text-label-caps text-on-surface uppercase px-4 py-3 sticky left-0 bg-surface-container-low font-bold">Sous-total</td>
+                @for (svc of services; track svc.Name) {
+                  <td class="font-data-tabular text-data-tabular px-4 py-3 text-right font-bold text-on-surface">{{ entry[svc.Name] || 0 }}</td>
+                }
+                <td class="font-data-tabular text-data-tabular px-4 py-3 text-right font-bold text-error bg-error-container/10 border-l border-outline-variant/50">
                   {{ totalExpenses | number:'1.0-0' }}
-                </span>
-              </td>
-            </tr>
-          </tbody>
-          <tfoot>
-            <tr class="bg-surface-container-low border-t-2 border-outline-variant">
-              <td class="font-label-caps text-label-caps text-on-surface uppercase px-4 py-3 sticky left-0 bg-surface-container-low z-10 font-bold">Sous-total</td>
-              @for (svc of services; track svc.key) {
-                <td class="font-data-tabular text-data-tabular px-4 py-3 text-right font-bold text-on-surface">{{ entry[svc.key] || 0 }}</td>
-              }
-              <td class="font-data-tabular text-data-tabular px-4 py-3 text-right font-bold text-error bg-error-container/10 border-l border-outline-variant/50">
-                {{ totalExpenses | number:'1.0-0' }}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-      <div class="bg-surface px-4 py-3 border-t border-outline-variant flex justify-between items-center">
-        <span class="font-label-caps text-label-caps text-on-surface-variant">Total Recettes du jour</span>
-        <span class="font-data-tabular text-data-tabular font-bold text-lg text-primary">{{ totalReceipts | number:'1.0-0' }} FCFA</span>
-      </div>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="bg-surface px-4 py-3 border-t border-outline-variant flex justify-between items-center">
+          <span class="font-label-caps text-label-caps text-on-surface-variant">Total Recettes du jour</span>
+          <span class="font-data-tabular text-data-tabular font-bold text-lg text-primary">{{ totalReceipts | number:'1.0-0' }} FCFA</span>
+        </div>
+      }
     </div>
 
     <!-- Dépenses journalières -->
@@ -243,6 +257,11 @@ interface ExpenseRow {
         Saisie journalière — {{ todayLabel }}
       </div>
       <div class="flex gap-3 w-full sm:w-auto">
+        <button type="button" (click)="exportPDF()"
+                class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-tertiary bg-tertiary-container/20 text-tertiary rounded-lg font-label-caps text-label-caps uppercase hover:bg-tertiary-container/40 transition-colors">
+          <span class="material-symbols-outlined" style="font-size: 18px;">picture_as_pdf</span>
+          PDF
+        </button>
         <button type="button" (click)="cancel()"
                 class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 border border-outline bg-surface-container-lowest text-on-surface rounded-lg font-label-caps text-label-caps uppercase hover:bg-surface-container-low transition-colors">
           <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
@@ -267,27 +286,16 @@ export class SaisieJourComponent implements OnInit {
   todayLabel = '';
   selectedDate = toDateStr(new Date());
   saving = false;
+  servicesLoading = true;
 
-  entry: Record<string, number> = {
-    Analyses: 0, GSRH: 0, ECG: 0, Ecocoeur: 0, HolterECG: 0,
-    MAPA: 0, Dentiste: 0, Ophtalmologie: 0, Imagerie: 0, Cardiologie: 0,
-  };
+  /** Catalogue of services loaded from DB */
+  services: MedicalService[] = [];
+
+  /** Current day amounts: { serviceName → amount } */
+  entry: Record<string, number> = {};
 
   expenses: ExpenseRow[] = [{ description: '', amount: 0 }];
   weekHistory: DayHistoryRow[] = [];
-
-  services = [
-    { key: 'Analyses',     label: 'Analyses biologiques',  shortLabel: 'Analyses' },
-    { key: 'GSRH',         label: 'GSRH',                  shortLabel: 'Grp Sang' },
-    { key: 'ECG',          label: 'ECG',                   shortLabel: 'ECG' },
-    { key: 'Ecocoeur',     label: 'Échocœur',              shortLabel: 'Echo' },
-    { key: 'HolterECG',    label: 'Holter ECG',            shortLabel: 'Holter' },
-    { key: 'MAPA',         label: 'MAPA',                  shortLabel: 'MAPA' },
-    { key: 'Dentiste',     label: 'Dentiste',              shortLabel: 'Dentiste' },
-    { key: 'Ophtalmologie',label: 'Ophtalmologie',         shortLabel: 'Ophtalmo' },
-    { key: 'Imagerie',     label: 'Imagerie médicale',     shortLabel: 'Imagerie' },
-    { key: 'Cardiologie',  label: 'Cardiologie',           shortLabel: 'Cardio' },
-  ];
 
   get selectedDateLabel(): string {
     if (!this.selectedDate) return '';
@@ -314,13 +322,30 @@ export class SaisieJourComponent implements OnInit {
 
   ngOnInit(): void {
     this.setTodayLabel();
-    this.loadData();
+    this.loadServices();
   }
 
   setTodayLabel(): void {
     const opts: Intl.DateTimeFormatOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     const s = new Date().toLocaleDateString('fr-FR', opts);
     this.todayLabel = s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  async loadServices(): Promise<void> {
+    try {
+      this.services = await this.financeService.getServices();
+      // Initialise entry map with 0 for every service
+      this.entry = {};
+      for (const svc of this.services) {
+        this.entry[svc.Name] = 0;
+      }
+    } catch (err) {
+      this.toast.error('Erreur chargement des services: ' + err);
+    } finally {
+      this.servicesLoading = false;
+    }
+    // Load data for current date after services are ready
+    await this.loadData();
   }
 
   prevDay(): void {
@@ -348,19 +373,15 @@ export class SaisieJourComponent implements OnInit {
         this.financeService.getWeekHistory(this.selectedDate),
       ]);
 
-      const e = entryData.Entry;
-      this.entry = {
-        Analyses:      e.Analyses      || 0,
-        GSRH:          e.GSRH          || 0,
-        ECG:           e.ECG           || 0,
-        Ecocoeur:      e.Ecocoeur      || 0,
-        HolterECG:     e.HolterECG     || 0,
-        MAPA:          e.MAPA          || 0,
-        Dentiste:      e.Dentiste      || 0,
-        Ophtalmologie: e.Ophtalmologie || 0,
-        Imagerie:      e.Imagerie      || 0,
-        Cardiologie:   e.Cardiologie   || 0,
-      };
+      // Reset all service values to 0, then fill from DB
+      const newEntry: Record<string, number> = {};
+      for (const svc of this.services) {
+        newEntry[svc.Name] = 0;
+      }
+      for (const sv of entryData.ServiceValues ?? []) {
+        newEntry[sv.ServiceName] = sv.Amount;
+      }
+      this.entry = newEntry;
 
       if (entryData.Expenses && entryData.Expenses.length > 0) {
         this.expenses = entryData.Expenses.map(ex => ({ description: ex.Description, amount: ex.Amount }));
@@ -389,32 +410,32 @@ export class SaisieJourComponent implements OnInit {
   async save(): Promise<void> {
     this.saving = true;
     try {
-      const entryPayload: any = {
-        Date:          this.selectedDate,
-        Analyses:      this.entry['Analyses']      || 0,
-        GSRH:          this.entry['GSRH']          || 0,
-        ECG:           this.entry['ECG']            || 0,
-        Ecocoeur:      this.entry['Ecocoeur']       || 0,
-        HolterECG:     this.entry['HolterECG']      || 0,
-        MAPA:          this.entry['MAPA']            || 0,
-        Dentiste:      this.entry['Dentiste']        || 0,
-        Ophtalmologie: this.entry['Ophtalmologie']   || 0,
-        Imagerie:      this.entry['Imagerie']        || 0,
-        Cardiologie:   this.entry['Cardiologie']     || 0,
-        Status:        'validated',
-      };
+      // Build service values array from entry map
+      const serviceValues: DailyServiceValue[] = this.services
+        .filter(svc => (this.entry[svc.Name] || 0) > 0)
+        .map(svc => ({ Date: this.selectedDate, ServiceName: svc.Name, Amount: this.entry[svc.Name] || 0 } as DailyServiceValue));
 
-      const expPayload: any[] = this.expenses
+      const expPayload = this.expenses
         .filter(e => e.amount > 0 || e.description.trim())
-        .map(e => ({ Date: this.selectedDate, Description: e.description, Amount: e.amount || 0 }));
+        .map(e => ({ Date: this.selectedDate, Description: e.description, Amount: e.amount || 0 } as any));
 
-      await this.financeService.saveDailyEntry(this.selectedDate, entryPayload, expPayload);
+      await this.financeService.saveDailyEntry(this.selectedDate, serviceValues, expPayload);
       this.toast.success('Saisie enregistrée avec succès');
       await this.loadData();
     } catch (err) {
       this.toast.error('Erreur lors de l\'enregistrement: ' + err);
     } finally {
       this.saving = false;
+    }
+  }
+
+  async exportPDF(): Promise<void> {
+    try {
+      const filePath = await this.financeService.exportDailyPDF(this.selectedDate);
+      this.toast.success('PDF généré avec succès');
+      await this.financeService.openDoc(filePath);
+    } catch (err) {
+      this.toast.error('Erreur lors de la génération du PDF: ' + err);
     }
   }
 

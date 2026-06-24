@@ -1,7 +1,7 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { FinanceService, MonthlyReport, MonthlyHonoraire, Investment } from '../../core/services/finance.service';
+import { FinanceService, MonthlyReport, MonthlyHonoraire, Investment, MonthlyOffre, SupplierBudgetSummary } from '../../core/services/finance.service';
 import { ToastService } from '../../core/services/toast.service';
 
 const MONTHS = [
@@ -10,7 +10,7 @@ const MONTHS = [
 ];
 
 interface HonoraireRow { personName: string; role: string; amount: number; }
-interface InvestmentRow { description: string; amount: number; }
+interface InvestmentRow { description: string; amount: number; documentPath?: string; attaching?: boolean; }
 
 @Component({
   selector: 'app-rapport-mensuel',
@@ -143,7 +143,7 @@ interface InvestmentRow { description: string; amount: number; }
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="bg-surface-container-low border-b border-outline-variant">
-                <th class="font-label-caps text-label-caps text-secondary uppercase px-4 py-3 sticky left-0 bg-surface-container-low z-10 min-w-[160px]">Service</th>
+                <th class="font-label-caps text-label-caps text-secondary uppercase px-4 py-3 sticky left-0 bg-surface-container-low min-w-[160px]">Service</th>
                 @for (w of weekHeaders; track $index) {
                   <th class="font-label-caps text-label-caps text-secondary uppercase px-3 py-3 text-right min-w-[90px]">{{ w }}</th>
                 }
@@ -163,7 +163,7 @@ interface InvestmentRow { description: string; amount: number; }
             </tbody>
             <tfoot>
               <tr class="bg-surface-container-low border-t-2 border-outline-variant">
-                <td class="font-label-caps text-label-caps text-on-surface uppercase px-4 py-3 sticky left-0 bg-surface-container-low z-10 font-bold">TOTAL RECETTES</td>
+                <td class="font-label-caps text-label-caps text-on-surface uppercase px-4 py-3 sticky left-0 bg-surface-container-low font-bold">TOTAL RECETTES</td>
                 @for (wt of report.WeekTotals; track $index) {
                   <td class="font-data-tabular text-data-tabular px-3 py-3 text-right font-bold text-on-surface">{{ wt | number:'1.0-0' }}</td>
                 }
@@ -313,11 +313,39 @@ interface InvestmentRow { description: string; amount: number; }
             @if (editInvestments) {
               <div class="p-4 bg-surface-container-low border-b border-outline-variant flex flex-col gap-3">
                 @for (inv of investmentRows; track $index) {
-                  <div class="flex gap-2 items-center">
+                  <div class="flex flex-wrap gap-2 items-center">
                     <input type="text" [(ngModel)]="inv.description" placeholder="Description de l'investissement"
-                           class="flex-1 border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md bg-surface-container-lowest focus:border-primary focus:outline-none" />
+                           class="flex-1 min-w-[140px] border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md bg-surface-container-lowest focus:border-primary focus:outline-none" />
                     <input type="number" min="0" [(ngModel)]="inv.amount" placeholder="0"
                            class="med-input w-28 font-data-tabular text-data-tabular border border-outline-variant rounded-lg" />
+                    <!-- File attachment button -->
+                    <button type="button" (click)="attachFile($index)" [disabled]="inv.attaching"
+                            class="flex items-center gap-1 px-2 py-2 rounded-lg transition-colors text-xs"
+                            [class.text-primary]="!inv.documentPath"
+                            [class.text-success]="inv.documentPath"
+                            [ngClass]="{'bg-surface-container-highest': !inv.documentPath, 'bg-success-container/20': !!inv.documentPath}"
+                            [class.cursor-wait]="inv.attaching"
+                            title="{{ inv.documentPath ? 'Justificatif joint — cliquer pour ouvrir' : 'Joindre un justificatif' }}">
+                      @if (inv.attaching) {
+                        <span class="material-symbols-outlined animate-spin" style="font-size: 18px;">progress_activity</span>
+                      } @else if (inv.documentPath) {
+                        <span class="material-symbols-outlined" style="font-size: 18px;">description</span>
+                      } @else {
+                        <span class="material-symbols-outlined" style="font-size: 18px;">attach_file</span>
+                      }
+                    </button>
+                    @if (inv.documentPath) {
+                      <button type="button" (click)="openAttachment(inv.documentPath)"
+                              class="p-1 text-primary hover:bg-primary/5 rounded-lg transition-colors"
+                              title="Ouvrir le justificatif">
+                        <span class="material-symbols-outlined" style="font-size: 16px;">open_in_new</span>
+                      </button>
+                      <button type="button" (click)="removeAttachment($index)"
+                              class="p-1 text-on-surface-variant hover:text-error rounded-lg transition-colors"
+                              title="Retirer le justificatif">
+                        <span class="material-symbols-outlined" style="font-size: 16px;">close</span>
+                      </button>
+                    }
                     <button (click)="removeInvestment($index)"
                             class="p-2 text-on-surface-variant hover:text-error rounded-lg hover:bg-error-container/20 transition-colors">
                       <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
@@ -340,15 +368,36 @@ interface InvestmentRow { description: string; amount: number; }
 
             <div class="table-scroll overflow-x-auto">
               <table class="w-full text-left border-collapse">
+                <thead>
+                  <tr class="bg-surface-container-low border-b border-outline-variant">
+                    <th class="font-label-caps text-label-caps text-secondary uppercase px-4 py-3">Description</th>
+                    <th class="font-label-caps text-label-caps text-secondary uppercase px-4 py-3 text-right">Montant (FCFA)</th>
+                    <th class="font-label-caps text-label-caps text-secondary uppercase px-4 py-3 text-center w-14">Justif.</th>
+                  </tr>
+                </thead>
                 <tbody class="divide-y divide-outline-variant/50">
                   @for (inv of report.Investments; track inv.ID) {
                     <tr class="hover:bg-surface-container-low transition-colors">
                       <td class="font-body-md text-body-md px-4 py-3 text-on-surface">{{ inv.Description }}</td>
                       <td class="font-data-tabular text-data-tabular px-4 py-3 text-right text-on-surface">{{ inv.Amount | number:'1.0-0' }}</td>
+                      <td class="px-4 py-3 text-center">
+                        @if (inv.DocumentPath) {
+                          <button type="button" (click)="openAttachment(inv.DocumentPath)"
+                                  class="inline-flex items-center gap-1 text-success hover:bg-success/5 px-2 py-1 rounded-lg transition-colors text-xs font-label-caps"
+                                  title="Ouvrir le justificatif">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">description</span>
+                            PDF
+                          </button>
+                        } @else {
+                          <span class="text-outline inline-flex items-center" title="Aucun justificatif">
+                            <span class="material-symbols-outlined" style="font-size: 16px;">hide_source</span>
+                          </span>
+                        }
+                      </td>
                     </tr>
                   } @empty {
                     <tr>
-                      <td colspan="2" class="px-4 py-6 text-center font-body-md text-body-md text-on-surface-variant">
+                      <td colspan="3" class="px-4 py-6 text-center font-body-md text-body-md text-on-surface-variant">
                         <span class="material-symbols-outlined block mx-auto mb-2 text-outline" style="font-size: 32px;">inventory_2</span>
                         Aucun investissement ce mois
                       </td>
@@ -360,6 +409,7 @@ interface InvestmentRow { description: string; amount: number; }
                     <tr class="bg-surface-container-low border-t-2 border-outline-variant">
                       <td class="font-label-caps text-label-caps text-on-surface uppercase px-4 py-3 font-bold">Total Investissements</td>
                       <td class="font-data-tabular text-data-tabular px-4 py-3 text-right font-bold text-on-surface">{{ report.TotalInvestments | number:'1.0-0' }}</td>
+                      <td></td>
                     </tr>
                   </tfoot>
                 }
@@ -378,6 +428,135 @@ interface InvestmentRow { description: string; amount: number; }
         <span class="font-data-tabular text-headline-sm font-bold text-error">{{ report.TotalExpenses | number:'1.0-0' }} FCFA</span>
       </div>
     </section>
+
+    <!-- ── SECTION OFFRES (informational only) ── -->
+    <section>
+      <div class="flex items-center gap-2 mb-3">
+        <span class="w-1 h-6 bg-tertiary rounded-full"></span>
+        <h3 class="font-headline-sm text-headline-sm text-on-surface">OFFRES</h3>
+        <span class="font-label-caps text-label-caps text-on-surface-variant ml-auto">Non inclus dans les calculs financiers</span>
+      </div>
+
+      <div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+        <div class="bg-surface border-b border-outline-variant px-4 py-3 flex justify-between items-center">
+          <h4 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2">
+            <span class="material-symbols-outlined text-tertiary" style="font-size: 18px;">redeem</span>
+            Récapitulatif des Offres
+          </h4>
+          <button (click)="editOffres = !editOffres"
+                  class="flex items-center gap-1 px-3 py-1.5 rounded-lg font-label-caps text-label-caps uppercase transition-colors"
+                  [class.bg-primary]="editOffres"
+                  [class.text-on-primary]="editOffres"
+                  [class.bg-surface-container-low]="!editOffres"
+                  [class.text-on-surface]="!editOffres">
+            <span class="material-symbols-outlined" style="font-size: 14px;">{{ editOffres ? 'close' : 'edit' }}</span>
+            {{ editOffres ? 'Fermer' : 'Modifier' }}
+          </button>
+        </div>
+
+        @if (editOffres) {
+          <div class="p-4 bg-surface-container-low border-b border-outline-variant flex flex-col gap-3">
+            <div class="flex gap-2 items-center">
+              <label class="font-body-md text-body-md text-on-surface min-w-[200px]">Agent de l'État / ayant droit</label>
+              <input type="number" min="0" [(ngModel)]="offreAgentEtat" placeholder="0"
+                     class="med-input w-40 font-data-tabular text-data-tabular border border-outline-variant rounded-lg" />
+            </div>
+            <div class="flex gap-2 items-center">
+              <label class="font-body-md text-body-md text-on-surface min-w-[200px]">Non ayant droit</label>
+              <input type="number" min="0" [(ngModel)]="offreNonAyantDroit" placeholder="0"
+                     class="med-input w-40 font-data-tabular text-data-tabular border border-outline-variant rounded-lg" />
+            </div>
+            <div class="flex gap-3 mt-1">
+              <button (click)="saveOffres()"
+                      class="flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-lg font-label-caps text-label-caps uppercase hover:bg-primary/90 transition-colors shadow-sm">
+                <span class="material-symbols-outlined" style="font-size: 16px;">save</span>
+                Enregistrer
+              </button>
+            </div>
+          </div>
+        }
+
+        <div class="divide-y divide-outline-variant/50">
+          <div class="flex justify-between items-center px-4 py-3 hover:bg-surface-container-low transition-colors">
+            <div class="flex items-center gap-3">
+              <span class="material-symbols-outlined text-tertiary" style="font-size: 18px;">badge</span>
+              <div>
+                <div class="font-body-md text-body-md text-on-surface">Agent de l'État / ayant droit</div>
+                <div class="font-label-caps text-label-caps text-on-surface-variant mt-0.5">Offre attribuée</div>
+              </div>
+            </div>
+            <div class="font-data-tabular text-data-tabular font-bold text-on-surface">{{ (report.OffresAgentEtat || 0) | number:'1.0-0' }}</div>
+          </div>
+          <div class="flex justify-between items-center px-4 py-3 hover:bg-surface-container-low transition-colors">
+            <div class="flex items-center gap-3">
+              <span class="material-symbols-outlined text-tertiary" style="font-size: 18px;">person</span>
+              <div>
+                <div class="font-body-md text-body-md text-on-surface">Non ayant droit</div>
+                <div class="font-label-caps text-label-caps text-on-surface-variant mt-0.5">Offre attribuée</div>
+              </div>
+            </div>
+            <div class="font-data-tabular text-data-tabular font-bold text-on-surface">{{ (report.OffresNonAyantDroit || 0) | number:'1.0-0' }}</div>
+          </div>
+        </div>
+
+        <div class="bg-tertiary-container/20 border-t-2 border-tertiary/30 px-4 py-3 flex justify-between items-center">
+          <span class="font-label-caps text-label-caps text-on-surface uppercase font-bold flex items-center gap-2">
+            <span class="material-symbols-outlined" style="font-size: 16px;">summarize</span>
+            Total Offres
+          </span>
+          <span class="font-data-tabular text-data-tabular font-bold text-on-surface">{{ (report.TotalOffres || 0) | number:'1.0-0' }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SECTION : SUIVI BUDGET FOURNISSEURS ── -->
+    @if (supplierBudgets.length > 0) {
+    <section>
+      <div class="flex items-center gap-2 mb-3">
+        <span class="w-1 h-6 bg-tertiary rounded-full"></span>
+        <h3 class="font-headline-sm text-headline-sm text-on-surface">SUIVI BUDGET FOURNISSEURS</h3>
+        <span class="font-label-caps text-label-caps text-on-surface-variant ml-auto">Montants en FCFA</span>
+      </div>
+
+      <div class="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+        <div class="table-scroll overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-surface-container-low border-b border-outline-variant">
+                <th class="font-label-caps text-label-caps text-secondary uppercase px-4 py-3">Nom du fournisseur</th>
+                <th class="font-label-caps text-label-caps text-secondary uppercase px-4 py-3 text-right">Année budgétaire</th>
+                <th class="font-label-caps text-label-caps text-secondary uppercase px-4 py-3 text-right">Montant engagé</th>
+                <th class="font-label-caps text-label-caps text-secondary uppercase px-4 py-3 text-right">Dépense réalisée</th>
+                <th class="font-label-caps text-label-caps text-secondary uppercase px-4 py-3 text-right">Restant</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-outline-variant/50">
+              @for (s of supplierBudgets; track s.ID) {
+                <tr class="hover:bg-surface-container-low transition-colors">
+                  <td class="font-body-md text-body-md px-4 py-3 text-on-surface font-medium">{{ s.Name }}</td>
+                  <td class="font-data-tabular text-data-tabular px-4 py-3 text-right text-on-surface">{{ s.BudgetYear }}</td>
+                  <td class="font-data-tabular text-data-tabular px-4 py-3 text-right text-on-surface">{{ s.AmountEngaged | number:'1.0-0' }}</td>
+                  <td class="font-data-tabular text-data-tabular px-4 py-3 text-right text-on-surface">{{ s.TotalExpenses | number:'1.0-0' }}</td>
+                  <td class="font-data-tabular text-data-tabular px-4 py-3 text-right font-bold"
+                      [class.text-success]="s.Remaining >= 0"
+                      [class.text-error]="s.Remaining < 0">{{ s.Remaining | number:'1.0-0' }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr class="bg-surface-container-low border-t-2 border-outline-variant">
+                <td class="font-label-caps text-label-caps text-on-surface uppercase px-4 py-3 font-bold">TOTAL</td>
+                <td class="font-data-tabular text-data-tabular px-4 py-3 text-right"></td>
+                <td class="font-data-tabular text-data-tabular px-4 py-3 text-right font-bold text-on-surface">{{ getTotalEngaged() | number:'1.0-0' }}</td>
+                <td class="font-data-tabular text-data-tabular px-4 py-3 text-right font-bold text-on-surface">{{ getTotalExpenses() | number:'1.0-0' }}</td>
+                <td class="font-data-tabular text-data-tabular px-4 py-3 text-right font-bold" [class.text-success]="getTotalRemaining() >= 0" [class.text-error]="getTotalRemaining() < 0">{{ getTotalRemaining() | number:'1.0-0' }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </section>
+    }
 
     <!-- ── SECTION 3 : SYNTHÈSE FINANCIÈRE ── -->
     <section>
@@ -400,7 +579,7 @@ interface InvestmentRow { description: string; amount: number; }
           <!-- Left column: Flux -->
           <div class="flex flex-col gap-3">
             <div class="flex justify-between items-center py-2 border-b border-on-primary/20">
-              <span class="font-body-md text-body-md text-on-primary/80">Report du mois précédent</span>
+              <span class="font-body-md text-body-md text-on-primary/80">Solde du mois précédent</span>
               <span class="font-data-tabular text-data-tabular text-primary-fixed font-bold">{{ report.PreviousBalance | number:'1.0-0' }}</span>
             </div>
             <div class="flex justify-between items-center py-2 border-b border-on-primary/20">
@@ -420,7 +599,7 @@ interface InvestmentRow { description: string; amount: number; }
           <!-- Right column: Résultat -->
           <div class="flex flex-col gap-3">
             <div class="flex justify-between items-center py-2 border-b border-on-primary/20">
-              <span class="font-body-md text-body-md text-on-primary font-semibold">Bénéfice d'Exploitation</span>
+              <span class="font-body-md text-body-md text-on-primary font-semibold">Bénéfice du Mois</span>
               <span class="font-data-tabular text-data-tabular text-primary-fixed font-bold text-lg">{{ report.Profit | number:'1.0-0' }}</span>
             </div>
             <div class="flex justify-between items-center py-2 border-b border-on-primary/20">
@@ -492,8 +671,12 @@ export class RapportMensuelComponent implements OnInit {
 
   editHonoraires = false;
   editInvestments = false;
+  editOffres = false;
   honoraireRows: HonoraireRow[] = [{ personName: '', role: '', amount: 0 }];
   investmentRows: InvestmentRow[] = [{ description: '', amount: 0 }];
+  offreAgentEtat = 0;
+  offreNonAyantDroit = 0;
+  supplierBudgets: SupplierBudgetSummary[] = [];
 
   get monthLabel(): string { return MONTHS[this.selectedMonth - 1]; }
 
@@ -533,21 +716,33 @@ export class RapportMensuelComponent implements OnInit {
     this.loading = true;
     this.editHonoraires = false;
     this.editInvestments = false;
+    this.editOffres = false;
     const month = +this.selectedMonth;
     const year = +this.selectedYear;
     try {
-      const [report, honoraires, investments] = await Promise.all([
+      const [report, honoraires, investments, offres, budgets] = await Promise.all([
         this.financeService.getMonthlyReport(month, year),
         this.financeService.getMonthlyHonoraires(month, year),
         this.financeService.getInvestments(month, year),
+        this.financeService.getMonthlyOffres(month, year),
+        this.financeService.getSupplierBudgetSummary(0), // 0 = tous les fournisseurs, sans filtre d'année
       ]);
       this.report = report;
       this.honoraireRows = honoraires.length
         ? honoraires.map(h => ({ personName: h.PersonName, role: h.Role, amount: h.Amount }))
         : [{ personName: '', role: '', amount: 0 }];
       this.investmentRows = investments.length
-        ? investments.map(i => ({ description: i.Description, amount: i.Amount }))
+        ? investments.map(i => ({ description: i.Description, amount: i.Amount, documentPath: i.DocumentPath || undefined }))
         : [{ description: '', amount: 0 }];
+      // Load offers
+      this.offreAgentEtat = 0;
+      this.offreNonAyantDroit = 0;
+      for (const o of offres) {
+        if (o.Category === 'Agent_Etat') this.offreAgentEtat = o.Amount;
+        if (o.Category === 'Non_Ayant_Droit') this.offreNonAyantDroit = o.Amount;
+      }
+      // Filtrer : afficher uniquement les fournisseurs avec un restant non nul
+      this.supplierBudgets = (budgets || []).filter(s => s.Remaining !== 0);
     } catch (err) {
       this.toast.error('Erreur chargement: ' + err);
     } finally {
@@ -559,6 +754,37 @@ export class RapportMensuelComponent implements OnInit {
   removeHonoraire(i: number): void { this.honoraireRows.splice(i, 1); }
   addInvestment(): void { this.investmentRows.push({ description: '', amount: 0 }); }
   removeInvestment(i: number): void { this.investmentRows.splice(i, 1); }
+
+  async attachFile(i: number): Promise<void> {
+    const inv = this.investmentRows[i];
+    if (inv.attaching) return;
+    try {
+      inv.attaching = true;
+      // Let user pick a file
+      const sourcePath = await this.financeService.selectFile('Sélectionnez un justificatif');
+      if (!sourcePath) { inv.attaching = false; return; }
+      // Use the description (or a fallback) as the filename
+      const fileName = inv.description.trim() || 'justificatif';
+      // Copy the file to the app data directory
+      const destPath = await this.financeService.saveAttachment(sourcePath, fileName);
+      inv.documentPath = destPath;
+      this.toast.success('Justificatif joint');
+    } catch (err) {
+      this.toast.error('Erreur lors de l\'attachement: ' + err);
+    } finally {
+      inv.attaching = false;
+    }
+  }
+
+  openAttachment(path: string): void {
+    if (path) {
+      this.financeService.openDoc(path);
+    }
+  }
+
+  removeAttachment(i: number): void {
+    this.investmentRows[i].documentPath = undefined;
+  }
 
   async saveHonoraires(): Promise<void> {
     const month = +this.selectedMonth;
@@ -582,7 +808,7 @@ export class RapportMensuelComponent implements OnInit {
     try {
       const payload: any[] = this.investmentRows
         .filter(i => i.description.trim() || i.amount > 0)
-        .map(i => ({ Month: month, Year: year, Description: i.description, Amount: i.amount || 0 }));
+        .map(i => ({ Month: month, Year: year, Description: i.description, Amount: i.amount || 0, DocumentPath: i.documentPath || '' }));
       await this.financeService.saveInvestments(month, year, payload);
       this.toast.success('Investissements enregistrés');
       this.editInvestments = false;
@@ -590,6 +816,35 @@ export class RapportMensuelComponent implements OnInit {
     } catch (err) {
       this.toast.error('Erreur: ' + err);
     }
+  }
+
+  async saveOffres(): Promise<void> {
+    const month = +this.selectedMonth;
+    const year = +this.selectedYear;
+    try {
+      const payload: any[] = [
+        { Month: month, Year: year, Category: 'Agent_Etat', Amount: this.offreAgentEtat || 0 },
+        { Month: month, Year: year, Category: 'Non_Ayant_Droit', Amount: this.offreNonAyantDroit || 0 },
+      ];
+      await this.financeService.saveMonthlyOffres(month, year, payload);
+      this.toast.success('Offres enregistrées');
+      this.editOffres = false;
+      await this.load();
+    } catch (err) {
+      this.toast.error('Erreur: ' + err);
+    }
+  }
+
+  getTotalEngaged(): number {
+    return this.supplierBudgets.reduce((sum, s) => sum + s.AmountEngaged, 0);
+  }
+
+  getTotalExpenses(): number {
+    return this.supplierBudgets.reduce((sum, s) => sum + s.TotalExpenses, 0);
+  }
+
+  getTotalRemaining(): number {
+    return this.supplierBudgets.reduce((sum, s) => sum + s.Remaining, 0);
   }
 
   print(): void { window.print(); }

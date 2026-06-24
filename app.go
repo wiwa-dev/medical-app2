@@ -4,14 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"medical-app/pkg/config"
 	"medical-app/pkg/db/sqlite"
 	"medical-app/pkg/models"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
+	"github.com/jung-kurt/gofpdf"
 	run "github.com/wailsapp/wails/v2/pkg/runtime"
 	"github.com/xuri/excelize/v2"
 	"golang.org/x/crypto/bcrypt"
@@ -59,9 +63,69 @@ func (a *App) SelectFile(title string) (string, error) {
 	return filePath, nil
 }
 
-// ============================================================
-// AUTH
-// ============================================================
+// SaveAttachment copies a file from sourcePath to the app's documents directory
+// with the given fileName (which should be the expense description).
+// It sanitizes the fileName to be safe for the filesystem and preserves the
+// original file extension. Returns the full destination path.
+func (a *App) SaveAttachment(sourcePath string, fileName string) (string, error) {
+	// Determine the destination directory
+	destDir := filepath.Join(config.GetAppDataDir(), "documents")
+	if err := os.MkdirAll(destDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create documents directory: %w", err)
+	}
+
+	// Get the original file extension
+	ext := filepath.Ext(sourcePath)
+
+	// Sanitize the fileName for use as a filesystem name
+	safe := strings.Map(func(r rune) rune {
+		if r == '.' || r == '-' || r == '_' || r == ' ' {
+			return r
+		}
+		if r >= 'a' && r <= 'z' {
+			return r
+		}
+		if r >= 'A' && r <= 'Z' {
+			return r
+		}
+		if r >= '0' && r <= '9' {
+			return r
+		}
+		// Keep common French/accented characters
+		if r >= 0xC0 && r <= 0xFF {
+			return r
+		}
+		return '_'
+	}, fileName)
+	// Trim spaces and collapse multiple spaces/underscores
+	safe = strings.TrimSpace(safe)
+	if safe == "" {
+		safe = "document"
+	}
+
+	destPath := filepath.Join(destDir, safe+ext)
+
+	// Copy the file
+	srcFile, err := os.Open(sourcePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to open source file: %w", err)
+	}
+	defer srcFile.Close()
+
+	destFile, err := os.Create(destPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to create destination file: %w", err)
+	}
+	defer destFile.Close()
+
+	if _, err := io.Copy(destFile, srcFile); err != nil {
+		return "", fmt.Errorf("failed to copy file: %w", err)
+	}
+
+	return destPath, nil
+}
+
+// --- AUTH ---
 
 func (a *App) Login(email, password string) (*models.User, error) {
 	var user models.User
@@ -174,45 +238,111 @@ func SeedAdmin() {
 	}
 }
 
-// ============================================================
-// SAISIE JOURNALIÈRE
-// ============================================================
+// --- SERVICES (catalogue) ---
 
-// GetDailyEntry returns the entry + expenses for a given date ("2025-01-15").
+// GetServices returns all active services ordered by SortOrder.
+func (a *App) GetServices() ([]models.MedicalService, error) {
+	db := sqlite.GlobalDB.GetDB()
+	var services []models.MedicalService
+	db.Where("active = ?", true).Order("sort_order").Find(&services)
+	return services, nil
+}
+
+// CreateService adds a new service to the catalogue (admin only).
+func (a *App) CreateService(service models.MedicalService) (models.MedicalService, error) {
+	db := sqlite.GlobalDB.GetDB()
+	if err := RequireAdmin(); err != nil {
+		return models.MedicalService{}, err
+	}
+	service.ID = 0
+	service.Active = true
+
+	// Auto sort_order: last + 1
+	if service.SortOrder == 0 {
+		var max int
+		db.Model(&models.MedicalService{}).Select("COALESCE(MAX(sort_order),0)").Scan(&max)
+		service.SortOrder = max + 1
+	}
+
+	if err := db.Create(&service).Error; err != nil {
+		return models.MedicalService{}, err
+	}
+	return service, nil
+}
+
+// UpdateService updates an existing service (admin only).
+func (a *App) UpdateService(service models.MedicalService) (models.MedicalService, error) {
+	db := sqlite.GlobalDB.GetDB()
+	if err := RequireAdmin(); err != nil {
+		return models.MedicalService{}, err
+	}
+	if err := db.Save(&service).Error; err != nil {
+		return models.MedicalService{}, err
+	}
+	return service, nil
+}
+
+// DeleteService soft-deactivates a service (admin only).
+// Historical data in daily_service_values is preserved.
+func (a *App) DeleteService(id uint) error {
+	db := sqlite.GlobalDB.GetDB()
+	if err := RequireAdmin(); err != nil {
+		return err
+	}
+	return db.Model(&models.MedicalService{}).Where("id = ?", id).Update("active", false).Error
+}
+
+// --- SAISIE JOURNALIERE ---
+
+// GetDailyEntry returns the entry + service values + expenses for a given date.
 func (a *App) GetDailyEntry(date string) (models.DailyEntryWithExpenses, error) {
 	db := sqlite.GlobalDB.GetDB()
 
 	var entry models.DailyEntry
 	db.Where("date = ?", date).First(&entry)
+	if entry.Date == "" {
+		entry.Date = date
+	}
+
+	var serviceValues []models.DailyServiceValue
+	db.Where("date = ?", date).Find(&serviceValues)
 
 	var expenses []models.DailyExpense
 	db.Where("date = ?", date).Order("id").Find(&expenses)
 
-	return models.DailyEntryWithExpenses{Entry: entry, Expenses: expenses}, nil
+	return models.DailyEntryWithExpenses{
+		Entry:         entry,
+		ServiceValues: serviceValues,
+		Expenses:      expenses,
+	}, nil
 }
 
-// SaveDailyEntry saves (upsert) an entry + expenses for a given date.
-func (a *App) SaveDailyEntry(date string, entry models.DailyEntry, expenses []models.DailyExpense) error {
+// SaveDailyEntry saves (upsert) an entry's service values + expenses for a given date.
+func (a *App) SaveDailyEntry(date string, serviceValues []models.DailyServiceValue, expenses []models.DailyExpense) error {
 	db := sqlite.GlobalDB.GetDB()
 
-	entry.Date = date
-	entry.Status = "validated"
-
+	// Upsert DailyEntry (date + status)
 	var existing models.DailyEntry
 	if db.Where("date = ?", date).First(&existing).Error == nil {
-		entry.ID = existing.ID
-		entry.CreatedAt = existing.CreatedAt
-		if err := db.Save(&entry).Error; err != nil {
-			return err
-		}
+		db.Model(&existing).Update("status", "validated")
 	} else {
-		if err := db.Create(&entry).Error; err != nil {
-			return err
+		db.Create(&models.DailyEntry{Date: date, Status: "validated"})
+	}
+
+	// Replace service values for this date (hard-delete to avoid UNIQUE constraint violation with soft-deleted rows)
+	db.Where("date = ?", date).Unscoped().Delete(&models.DailyServiceValue{})
+	for i := range serviceValues {
+		serviceValues[i].ID = 0
+		serviceValues[i].Date = date
+		if serviceValues[i].Amount > 0 {
+			if err := db.Create(&serviceValues[i]).Error; err != nil {
+				return err
+			}
 		}
 	}
 
-	// Replace expenses for this date
-	db.Where("date = ?", date).Delete(&models.DailyExpense{})
+	// Replace expenses for this date (hard-delete for consistency)
+	db.Where("date = ?", date).Unscoped().Delete(&models.DailyExpense{})
 	for i := range expenses {
 		expenses[i].ID = 0
 		expenses[i].Date = date
@@ -241,9 +371,25 @@ func (a *App) GetWeekHistory(date string) ([]models.DayHistoryRow, error) {
 	var entries []models.DailyEntry
 	db.Where("date BETWEEN ? AND ?", mondayStr, sundayStr).Order("date").Find(&entries)
 
+	// Aggregate service value totals per date
+	type dateTotal struct {
+		Date  string
+		Total float64
+	}
+	var receiptTotals []dateTotal
+	db.Model(&models.DailyServiceValue{}).
+		Select("date, SUM(amount) as total").
+		Where("date BETWEEN ? AND ?", mondayStr, sundayStr).
+		Group("date").
+		Scan(&receiptTotals)
+
+	receiptByDate := make(map[string]float64)
+	for _, r := range receiptTotals {
+		receiptByDate[r.Date] = r.Total
+	}
+
 	var rawExpenses []models.DailyExpense
 	db.Where("date BETWEEN ? AND ?", mondayStr, sundayStr).Find(&rawExpenses)
-
 	expByDate := make(map[string]float64)
 	for _, e := range rawExpenses {
 		expByDate[e.Date] += e.Amount
@@ -251,7 +397,7 @@ func (a *App) GetWeekHistory(date string) ([]models.DayHistoryRow, error) {
 
 	result := make([]models.DayHistoryRow, 0, len(entries))
 	for _, e := range entries {
-		totalR := entryReceipts(e)
+		totalR := receiptByDate[e.Date]
 		totalE := expByDate[e.Date]
 		result = append(result, models.DayHistoryRow{
 			Date:          e.Date,
@@ -264,9 +410,7 @@ func (a *App) GetWeekHistory(date string) ([]models.DayHistoryRow, error) {
 	return result, nil
 }
 
-// ============================================================
-// RAPPORT MENSUEL
-// ============================================================
+// --- RAPPORT MENSUEL ---
 
 // GetMonthlyReport returns the full aggregated monthly report.
 func (a *App) GetMonthlyReport(month, year int) (models.MonthlyReport, error) {
@@ -277,13 +421,14 @@ func (a *App) GetMonthlyReport(month, year int) (models.MonthlyReport, error) {
 	firstStr := firstDay.Format("2006-01-02")
 	lastStr := lastDay.Format("2006-01-02")
 
-	var entries []models.DailyEntry
-	db.Where("date BETWEEN ? AND ?", firstStr, lastStr).Order("date").Find(&entries)
+	// Load all service values for the month
+	var allSVs []models.DailyServiceValue
+	db.Where("date BETWEEN ? AND ?", firstStr, lastStr).Find(&allSVs)
 
 	// Determine week count
 	maxWeekIdx := 0
-	for _, e := range entries {
-		t, _ := time.Parse("2006-01-02", e.Date)
+	for _, sv := range allSVs {
+		t, _ := time.Parse("2006-01-02", sv.Date)
 		idx := weekIndexInMonth(t)
 		if idx > maxWeekIdx {
 			maxWeekIdx = idx
@@ -294,56 +439,44 @@ func (a *App) GetMonthlyReport(month, year int) (models.MonthlyReport, error) {
 		weekCount = 4
 	}
 
-	// Service names and extraction functions
-	type svcFn struct {
+	// Group service values by service name and week index
+	type key struct {
 		name string
-		get  func(models.DailyEntry) float64
+		week int
 	}
-	serviceList := []svcFn{
-		{"Analyses biologiques", func(e models.DailyEntry) float64 { return e.Analyses }},
-		{"GSRH", func(e models.DailyEntry) float64 { return e.GSRH }},
-		{"ECG", func(e models.DailyEntry) float64 { return e.ECG }},
-		{"Échocœur", func(e models.DailyEntry) float64 { return e.Ecocoeur }},
-		{"Holter ECG", func(e models.DailyEntry) float64 { return e.HolterECG }},
-		{"MAPA", func(e models.DailyEntry) float64 { return e.MAPA }},
-		{"Dentiste", func(e models.DailyEntry) float64 { return e.Dentiste }},
-		{"Ophtalmologie", func(e models.DailyEntry) float64 { return e.Ophtalmologie }},
-		{"Imagerie médicale", func(e models.DailyEntry) float64 { return e.Imagerie }},
-		{"Cardiologie", func(e models.DailyEntry) float64 { return e.Cardiologie }},
+	svMap := make(map[key]float64)
+	totalReceipts := 0.0
+	for _, sv := range allSVs {
+		t, _ := time.Parse("2006-01-02", sv.Date)
+		idx := weekIndexInMonth(t)
+		if idx < weekCount {
+			svMap[key{sv.ServiceName, idx}] += sv.Amount
+		}
+		totalReceipts += sv.Amount
 	}
+
+	// Get active services in order for report rows
+	var activeServices []models.MedicalService
+	db.Where("active = ?", true).Order("sort_order").Find(&activeServices)
 
 	weekTotals := make([]float64, weekCount)
 	var serviceData []models.ServiceWeekData
 
-	for _, svc := range serviceList {
+	for _, svc := range activeServices {
 		weeks := make([]float64, weekCount)
 		total := 0.0
-		for _, e := range entries {
-			t, _ := time.Parse("2006-01-02", e.Date)
-			idx := weekIndexInMonth(t)
-			if idx < weekCount {
-				weeks[idx] += svc.get(e)
-				total += svc.get(e)
-			}
+		for w := 0; w < weekCount; w++ {
+			v := svMap[key{svc.Name, w}]
+			weeks[w] = v
+			total += v
+			weekTotals[w] += v
 		}
 		if total > 0 {
 			serviceData = append(serviceData, models.ServiceWeekData{
-				Service: svc.name,
+				Service: svc.Label,
 				Weeks:   weeks,
 				Total:   total,
 			})
-		}
-	}
-
-	totalReceipts := 0.0
-	for _, e := range entries {
-		totalReceipts += entryReceipts(e)
-	}
-	for i := range weekTotals {
-		for _, sd := range serviceData {
-			if i < len(sd.Weeks) {
-				weekTotals[i] += sd.Weeks[i]
-			}
 		}
 	}
 
@@ -354,6 +487,21 @@ func (a *App) GetMonthlyReport(month, year int) (models.MonthlyReport, error) {
 	for _, h := range honoraires {
 		totalHonoraires += h.Amount
 	}
+
+	// Offres (informational only)
+	var offres []models.MonthlyOffre
+	db.Where("month = ? AND year = ?", month, year).Find(&offres)
+	offresAgentEtat := 0.0
+	offresNonAyantDroit := 0.0
+	for _, o := range offres {
+		switch o.Category {
+		case "Agent_Etat":
+			offresAgentEtat = o.Amount
+		case "Non_Ayant_Droit":
+			offresNonAyantDroit = o.Amount
+		}
+	}
+	totalOffres := offresAgentEtat + offresNonAyantDroit
 
 	// Other expenses (daily)
 	var rawExpenses []models.DailyExpense
@@ -377,21 +525,24 @@ func (a *App) GetMonthlyReport(month, year int) (models.MonthlyReport, error) {
 	finalBalance := prevBalance + profit - totalInvestments
 
 	return models.MonthlyReport{
-		Month:              month,
-		Year:               year,
-		WeekCount:          weekCount,
-		Services:           serviceData,
-		WeekTotals:         weekTotals,
-		TotalReceipts:      totalReceipts,
-		Honoraires:         honoraires,
-		TotalHonoraires:    totalHonoraires,
-		OtherExpensesTotal: otherExpTotal,
-		Investments:        investments,
-		TotalInvestments:   totalInvestments,
-		TotalExpenses:      totalExpenses,
-		PreviousBalance:    prevBalance,
-		Profit:             profit,
-		FinalBalance:       finalBalance,
+		Month:               month,
+		Year:                year,
+		WeekCount:           weekCount,
+		Services:            serviceData,
+		WeekTotals:          weekTotals,
+		TotalReceipts:       totalReceipts,
+		Honoraires:          honoraires,
+		TotalHonoraires:     totalHonoraires,
+		OtherExpensesTotal:  otherExpTotal,
+		Investments:         investments,
+		TotalInvestments:    totalInvestments,
+		TotalExpenses:       totalExpenses,
+		PreviousBalance:     prevBalance,
+		Profit:              profit,
+		FinalBalance:        finalBalance,
+		OffresAgentEtat:     offresAgentEtat,
+		OffresNonAyantDroit: offresNonAyantDroit,
+		TotalOffres:         totalOffres,
 	}, nil
 }
 
@@ -441,9 +592,30 @@ func (a *App) GetInvestments(month, year int) ([]models.Investment, error) {
 	return investments, nil
 }
 
-// ============================================================
-// BILAN ANNUEL
-// ============================================================
+// GetMonthlyOffres retrieves the two offer amounts for a month/year.
+func (a *App) GetMonthlyOffres(month, year int) ([]models.MonthlyOffre, error) {
+	db := sqlite.GlobalDB.GetDB()
+	var offres []models.MonthlyOffre
+	db.Where("month = ? AND year = ?", month, year).Find(&offres)
+	return offres, nil
+}
+
+// SaveMonthlyOffres saves the two offer amounts for a month/year (replaces existing).
+func (a *App) SaveMonthlyOffres(month, year int, offres []models.MonthlyOffre) error {
+	db := sqlite.GlobalDB.GetDB()
+	db.Where("month = ? AND year = ?", month, year).Unscoped().Delete(&models.MonthlyOffre{})
+	for i := range offres {
+		offres[i].ID = 0
+		offres[i].Month = month
+		offres[i].Year = year
+		if err := db.Create(&offres[i]).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// --- BILAN ANNUEL ---
 
 // GetAnnualReport computes the full annual summary.
 func (a *App) GetAnnualReport(year int) (models.AnnualReport, error) {
@@ -466,12 +638,7 @@ func (a *App) GetAnnualReport(year int) (models.AnnualReport, error) {
 		firstStr := firstDay.Format("2006-01-02")
 		lastStr := lastDay.Format("2006-01-02")
 
-		var entries []models.DailyEntry
-		db.Where("date BETWEEN ? AND ?", firstStr, lastStr).Find(&entries)
-		receipts := 0.0
-		for _, e := range entries {
-			receipts += entryReceipts(e)
-		}
+		receipts := sumServiceValues(firstStr, lastStr)
 
 		var honoraires []models.MonthlyHonoraire
 		db.Where("month = ? AND year = ?", m, year).Find(&honoraires)
@@ -550,22 +717,19 @@ func (a *App) ExportAnnualExcel(year int) (string, error) {
 		"Investissements (FCFA)", "Bénéfice (FCFA)", "Solde de Clôture (FCFA)",
 	}
 
-	// Write headers
 	for i, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheet, cell, h)
 	}
 
-	// Style for header
 	headerStyle, _ := f.NewStyle(&excelize.Style{
-		Font: &excelize.Font{Bold: true, Color: "#FFFFFF", Size: 11},
-		Fill: excelize.Fill{Type: "pattern", Color: []string{"#002045"}, Pattern: 1},
+		Font:      &excelize.Font{Bold: true, Color: "#FFFFFF", Size: 11},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"#002045"}, Pattern: 1},
 		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
 	})
 	lastHeaderCell, _ := excelize.CoordinatesToCellName(len(headers), 1)
 	f.SetCellStyle(sheet, "A1", lastHeaderCell, headerStyle)
 
-	// Write month rows
 	for i, ms := range report.Months {
 		row := i + 2
 		data := []interface{}{
@@ -584,7 +748,6 @@ func (a *App) ExportAnnualExcel(year int) (string, error) {
 		}
 	}
 
-	// Total row
 	totalRow := 14
 	totalData := []interface{}{
 		"TOTAL ANNUEL", "-",
@@ -597,7 +760,6 @@ func (a *App) ExportAnnualExcel(year int) (string, error) {
 		f.SetCellValue(sheet, cell, val)
 	}
 
-	// Style totals row
 	totalStyle, _ := f.NewStyle(&excelize.Style{
 		Font: &excelize.Font{Bold: true, Size: 11},
 		Fill: excelize.Fill{Type: "pattern", Color: []string{"#E5EEFF"}, Pattern: 1},
@@ -606,13 +768,11 @@ func (a *App) ExportAnnualExcel(year int) (string, error) {
 	totalRowCell, _ := excelize.CoordinatesToCellName(1, totalRow)
 	f.SetCellStyle(sheet, totalRowCell, lastTotalCell, totalStyle)
 
-	// Auto-width
 	for i := 1; i <= len(headers); i++ {
 		col, _ := excelize.ColumnNumberToName(i)
 		f.SetColWidth(sheet, col, col, 24)
 	}
 
-	// Save file
 	dir := config.GetExportsDir()
 	filePath := filepath.Join(dir, fmt.Sprintf("bilan_annuel_%d_%d.xlsx", year, time.Now().Unix()))
 	if err := f.SaveAs(filePath); err != nil {
@@ -621,11 +781,8 @@ func (a *App) ExportAnnualExcel(year int) (string, error) {
 	return filePath, nil
 }
 
-// ============================================================
-// YEAR SETTINGS
-// ============================================================
+// --- YEAR SETTINGS ---
 
-// GetYearSettings returns settings (initial balance) for a year.
 func (a *App) GetYearSettings(year int) (models.YearSettings, error) {
 	db := sqlite.GlobalDB.GetDB()
 	var s models.YearSettings
@@ -636,7 +793,6 @@ func (a *App) GetYearSettings(year int) (models.YearSettings, error) {
 	return s, nil
 }
 
-// SetInitialBalance sets the initial balance for a year.
 func (a *App) SetInitialBalance(year int, amount float64) error {
 	db := sqlite.GlobalDB.GetDB()
 	var s models.YearSettings
@@ -646,19 +802,363 @@ func (a *App) SetInitialBalance(year int, amount float64) error {
 	return db.Create(&models.YearSettings{Year: year, InitialBalance: amount}).Error
 }
 
-// ============================================================
-// HELPERS
-// ============================================================
+// --- SUPPLIER BUDGET TRACKING ---
 
-func entryReceipts(e models.DailyEntry) float64 {
-	return e.Analyses + e.GSRH + e.ECG + e.Ecocoeur + e.HolterECG +
-		e.MAPA + e.Dentiste + e.Ophtalmologie + e.Imagerie + e.Cardiologie
+// CreateSupplier creates a new supplier with the given name, budget year, and committed amount.
+func (a *App) CreateSupplier(name string, budgetYear int, amountEngaged float64) (*models.Supplier, error) {
+	db := sqlite.GlobalDB.GetDB()
+	supplier := &models.Supplier{
+		Name:          name,
+		BudgetYear:    budgetYear,
+		AmountEngaged: amountEngaged,
+	}
+	if err := db.Create(supplier).Error; err != nil {
+		return nil, err
+	}
+	return supplier, nil
+}
+
+// UpdateSupplier updates an existing supplier's fields.
+func (a *App) UpdateSupplier(id uint, name string, budgetYear int, amountEngaged float64) (*models.Supplier, error) {
+	db := sqlite.GlobalDB.GetDB()
+	var supplier models.Supplier
+	if err := db.First(&supplier, id).Error; err != nil {
+		return nil, fmt.Errorf("fournisseur non trouvé: %w", err)
+	}
+	supplier.Name = name
+	supplier.BudgetYear = budgetYear
+	supplier.AmountEngaged = amountEngaged
+	if err := db.Save(&supplier).Error; err != nil {
+		return nil, err
+	}
+	return &supplier, nil
+}
+
+// DeleteSupplier soft-deletes a supplier by ID.
+func (a *App) DeleteSupplier(id uint) error {
+	db := sqlite.GlobalDB.GetDB()
+	return db.Delete(&models.Supplier{}, id).Error
+}
+
+// GetSuppliers returns all suppliers filtered by budget year.
+func (a *App) GetSuppliers(budgetYear int) ([]models.Supplier, error) {
+	db := sqlite.GlobalDB.GetDB()
+	var suppliers []models.Supplier
+	db.Where("budget_year = ?", budgetYear).Order("name").Find(&suppliers)
+	return suppliers, nil
+}
+
+// GetAllSuppliers returns all suppliers ordered by name.
+func (a *App) GetAllSuppliers() ([]models.Supplier, error) {
+	db := sqlite.GlobalDB.GetDB()
+	var suppliers []models.Supplier
+	db.Order("name").Find(&suppliers)
+	return suppliers, nil
+}
+
+// AddSupplierExpense records a new expense against a supplier.
+func (a *App) AddSupplierExpense(supplierID uint, amount float64, description string, date string) (*models.SupplierExpense, error) {
+	db := sqlite.GlobalDB.GetDB()
+	// Verify supplier exists
+	var supplier models.Supplier
+	if err := db.First(&supplier, supplierID).Error; err != nil {
+		return nil, fmt.Errorf("fournisseur non trouvé: %w", err)
+	}
+	expense := &models.SupplierExpense{
+		SupplierID:  supplierID,
+		Amount:      amount,
+		Description: description,
+		Date:        date,
+	}
+	if err := db.Create(expense).Error; err != nil {
+		return nil, err
+	}
+	return expense, nil
+}
+
+// DeleteSupplierExpense soft-deletes a supplier expense by ID.
+func (a *App) DeleteSupplierExpense(id uint) error {
+	db := sqlite.GlobalDB.GetDB()
+	return db.Delete(&models.SupplierExpense{}, id).Error
+}
+
+// GetSupplierExpenses returns all expenses for a given supplier, ordered by date descending.
+func (a *App) GetSupplierExpenses(supplierID uint) ([]models.SupplierExpense, error) {
+	db := sqlite.GlobalDB.GetDB()
+	var expenses []models.SupplierExpense
+	db.Where("supplier_id = ?", supplierID).Order("date DESC, id DESC").Find(&expenses)
+	return expenses, nil
+}
+
+// GetSupplierBudgetSummary returns the budget summary for all suppliers for a given year.
+// It computes total expenses per supplier and the remaining balance.
+func (a *App) GetSupplierBudgetSummary(year int) ([]models.SupplierBudgetSummary, error) {
+	db := sqlite.GlobalDB.GetDB()
+	var suppliers []models.Supplier
+	db.Order("name").Find(&suppliers)
+
+	results := make([]models.SupplierBudgetSummary, 0, len(suppliers))
+	for _, s := range suppliers {
+		type expenseTotal struct {
+			Total float64
+		}
+		var et expenseTotal
+		db.Model(&models.SupplierExpense{}).
+			Select("COALESCE(SUM(amount), 0) as total").
+			Where("supplier_id = ?", s.ID).
+			Scan(&et)
+
+		results = append(results, models.SupplierBudgetSummary{
+			ID:            s.ID,
+			Name:          s.Name,
+			BudgetYear:    s.BudgetYear,
+			AmountEngaged: s.AmountEngaged,
+			TotalExpenses: et.Total,
+			Remaining:     s.AmountEngaged - et.Total,
+		})
+	}
+	return results, nil
+}
+
+// --- EXPORT DAILY PDF ---
+
+// ExportDailyPDF generates a PDF report for the daily entry on the given date.
+// It returns the file path to the generated PDF.
+func (a *App) ExportDailyPDF(date string) (string, error) {
+	// Load daily entry data
+	entry, err := a.GetDailyEntry(date)
+	if err != nil {
+		return "", fmt.Errorf("failed to load daily entry: %w", err)
+	}
+
+	// Load supplier expenses for this date
+	db := sqlite.GlobalDB.GetDB()
+	var supplierExpenses []models.SupplierExpense
+	db.Where("date = ?", date).Order("id").Find(&supplierExpenses)
+
+	// Enrich supplier expenses with supplier names
+	type supplierExpenseRow struct {
+		SupplierName string
+		Amount       float64
+		Description  string
+	}
+	var supplierRows []supplierExpenseRow
+	for _, se := range supplierExpenses {
+		var s models.Supplier
+		if db.First(&s, se.SupplierID).Error == nil {
+			supplierRows = append(supplierRows, supplierExpenseRow{
+				SupplierName: s.Name,
+				Amount:       se.Amount,
+				Description:  se.Description,
+			})
+		}
+	}
+
+	// Compute totals
+	totalReceipts := 0.0
+	for _, sv := range entry.ServiceValues {
+		totalReceipts += sv.Amount
+	}
+	totalExpenses := 0.0
+	for _, e := range entry.Expenses {
+		totalExpenses += e.Amount
+	}
+	totalSupplierExp := 0.0
+	for _, se := range supplierExpenses {
+		totalSupplierExp += se.Amount
+	}
+	netBalance := totalReceipts - totalExpenses - totalSupplierExp
+
+	// Create PDF
+	pdf := gofpdf.New("P", "mm", "A4", "")
+	pdf.SetAutoPageBreak(true, 20)
+	pdf.AddPage()
+
+	// --- Header ---
+	pdf.SetFont("Helvetica", "B", 18)
+	pdf.SetTextColor(0, 32, 69)
+	pdf.CellFormat(0, 15, "Suivi Journalier", "", 1, "C", false, 0, "")
+	pdf.SetFont("Helvetica", "", 12)
+	pdf.SetTextColor(80, 80, 80)
+	pdf.CellFormat(0, 8, date, "", 1, "C", false, 0, "")
+	pdf.Ln(5)
+
+	// --- Summary Cards ---
+	pdf.SetFont("Helvetica", "B", 10)
+	pdf.SetFillColor(0, 32, 69)
+	pdf.SetTextColor(255, 255, 255)
+	pdf.CellFormat(190, 7, "Resume", "1", 1, "C", true, 0, "")
+
+	pdf.SetFont("Helvetica", "", 9)
+	pdf.SetTextColor(0, 0, 0)
+	pdf.SetFillColor(220, 230, 241)
+
+	summaryData := []struct {
+		label string
+		value float64
+		color []int
+	}{
+		{"Total Recettes (FCFA)", totalReceipts, []int{0, 150, 0}},
+		{"Total Depenses (FCFA)", totalExpenses, []int{200, 0, 0}},
+		{"Depenses Fournisseurs (FCFA)", totalSupplierExp, []int{200, 100, 0}},
+		{"Solde Net (FCFA)", netBalance, []int{0, 80, 160}},
+	}
+
+	for _, sd := range summaryData {
+		pdf.SetFillColor(245, 245, 245)
+		pdf.CellFormat(130, 6, sd.label, "1", 0, "L", true, 0, "")
+		pdf.SetTextColor(sd.color[0], sd.color[1], sd.color[2])
+		pdf.SetFont("Helvetica", "B", 9)
+		pdf.CellFormat(60, 6, fmt.Sprintf("%.0f FCFA", sd.value), "1", 1, "R", true, 0, "")
+		pdf.SetFont("Helvetica", "", 9)
+		pdf.SetTextColor(0, 0, 0)
+	}
+	pdf.Ln(5)
+
+	// --- Receipts by Service Table ---
+	pdf.SetFont("Helvetica", "B", 10)
+	pdf.SetFillColor(0, 32, 69)
+	pdf.SetTextColor(255, 255, 255)
+	pdf.CellFormat(190, 7, "Recettes par Service", "1", 1, "C", true, 0, "")
+
+	// Table header
+	pdf.SetFont("Helvetica", "B", 8)
+	pdf.SetFillColor(200, 210, 230)
+	pdf.SetTextColor(0, 0, 0)
+	pdf.CellFormat(140, 6, "Service", "1", 0, "C", true, 0, "")
+	pdf.CellFormat(50, 6, "Montant (FCFA)", "1", 1, "C", true, 0, "")
+
+	// Table rows
+	pdf.SetFont("Helvetica", "", 8)
+	fill := false
+	for _, sv := range entry.ServiceValues {
+		if fill {
+			pdf.SetFillColor(240, 244, 250)
+		} else {
+			pdf.SetFillColor(255, 255, 255)
+		}
+		pdf.CellFormat(140, 6, sv.ServiceName, "1", 0, "L", true, 0, "")
+		pdf.CellFormat(50, 6, fmt.Sprintf("%.0f", sv.Amount), "1", 1, "R", true, 0, "")
+		fill = !fill
+	}
+	// Total row
+	pdf.SetFont("Helvetica", "B", 8)
+	pdf.SetFillColor(220, 230, 241)
+	pdf.CellFormat(140, 6, "TOTAL RECETTES", "1", 0, "L", true, 0, "")
+	pdf.CellFormat(50, 6, fmt.Sprintf("%.0f FCFA", totalReceipts), "1", 1, "R", true, 0, "")
+	pdf.Ln(5)
+
+	// --- Daily Expenses Table ---
+	pdf.SetFont("Helvetica", "B", 10)
+	pdf.SetFillColor(0, 32, 69)
+	pdf.SetTextColor(255, 255, 255)
+	pdf.CellFormat(190, 7, "Depenses Journalieres", "1", 1, "C", true, 0, "")
+
+	// Table header
+	pdf.SetFont("Helvetica", "B", 8)
+	pdf.SetFillColor(200, 210, 230)
+	pdf.SetTextColor(0, 0, 0)
+	pdf.CellFormat(140, 6, "Description", "1", 0, "C", true, 0, "")
+	pdf.CellFormat(50, 6, "Montant (FCFA)", "1", 1, "C", true, 0, "")
+
+	// Table rows
+	pdf.SetFont("Helvetica", "", 8)
+	fill = false
+	for _, e := range entry.Expenses {
+		if fill {
+			pdf.SetFillColor(240, 244, 250)
+		} else {
+			pdf.SetFillColor(255, 255, 255)
+		}
+		desc := e.Description
+		if desc == "" {
+			desc = "-"
+		}
+		pdf.CellFormat(140, 6, desc, "1", 0, "L", true, 0, "")
+		pdf.CellFormat(50, 6, fmt.Sprintf("%.0f", e.Amount), "1", 1, "R", true, 0, "")
+		fill = !fill
+	}
+	// Total row
+	pdf.SetFont("Helvetica", "B", 8)
+	pdf.SetFillColor(220, 230, 241)
+	pdf.CellFormat(140, 6, "TOTAL DEPENSES", "1", 0, "L", true, 0, "")
+	pdf.CellFormat(50, 6, fmt.Sprintf("%.0f FCFA", totalExpenses), "1", 1, "R", true, 0, "")
+	pdf.Ln(5)
+
+	// --- Supplier Expenses Table (only if there are any) ---
+	if len(supplierRows) > 0 {
+		pdf.SetFont("Helvetica", "B", 10)
+		pdf.SetFillColor(0, 32, 69)
+		pdf.SetTextColor(255, 255, 255)
+		pdf.CellFormat(190, 7, "Depenses Fournisseurs", "1", 1, "C", true, 0, "")
+
+		// Table header
+		pdf.SetFont("Helvetica", "B", 8)
+		pdf.SetFillColor(200, 210, 230)
+		pdf.SetTextColor(0, 0, 0)
+		pdf.CellFormat(60, 6, "Fournisseur", "1", 0, "C", true, 0, "")
+		pdf.CellFormat(80, 6, "Description", "1", 0, "C", true, 0, "")
+		pdf.CellFormat(50, 6, "Montant (FCFA)", "1", 1, "C", true, 0, "")
+
+		// Table rows
+		pdf.SetFont("Helvetica", "", 8)
+		fill = false
+		for _, sr := range supplierRows {
+			if fill {
+				pdf.SetFillColor(240, 244, 250)
+			} else {
+				pdf.SetFillColor(255, 255, 255)
+			}
+			desc := sr.Description
+			if desc == "" {
+				desc = "-"
+			}
+			pdf.CellFormat(60, 6, sr.SupplierName, "1", 0, "L", true, 0, "")
+			pdf.CellFormat(80, 6, desc, "1", 0, "L", true, 0, "")
+			pdf.CellFormat(50, 6, fmt.Sprintf("%.0f", sr.Amount), "1", 1, "R", true, 0, "")
+			fill = !fill
+		}
+		// Total row
+		pdf.SetFont("Helvetica", "B", 8)
+		pdf.SetFillColor(220, 230, 241)
+		pdf.CellFormat(140, 6, "TOTAL FOURNISSEURS", "1", 0, "L", true, 0, "")
+		pdf.CellFormat(50, 6, fmt.Sprintf("%.0f FCFA", totalSupplierExp), "1", 1, "R", true, 0, "")
+	}
+
+	// --- Footer with generation info ---
+	pdf.SetY(-20)
+	pdf.SetFont("Helvetica", "I", 7)
+	pdf.SetTextColor(150, 150, 150)
+	nowStr := time.Now().Format("02/01/2006 15:04")
+	pdf.CellFormat(0, 10, fmt.Sprintf("Genere le %s", nowStr), "", 1, "C", false, 0, "")
+
+	// Save to exports directory
+	dir := config.GetExportsDir()
+	filePath := filepath.Join(dir, fmt.Sprintf("suivi_journalier_%s_%d.pdf", date, time.Now().Unix()))
+	if err := pdf.OutputFileAndClose(filePath); err != nil {
+		return "", fmt.Errorf("failed to save PDF: %w", err)
+	}
+	return filePath, nil
+}
+
+// --- HELPERS ---
+
+// sumServiceValues returns total receipts from DailyServiceValue for a date range.
+func sumServiceValues(firstStr, lastStr string) float64 {
+	db := sqlite.GlobalDB.GetDB()
+	type result struct{ Total float64 }
+	var r result
+	db.Model(&models.DailyServiceValue{}).
+		Select("COALESCE(SUM(amount), 0) as total").
+		Where("date BETWEEN ? AND ?", firstStr, lastStr).
+		Scan(&r)
+	return r.Total
 }
 
 func weekBounds(t time.Time) (monday, sunday time.Time) {
 	weekday := int(t.Weekday())
 	if weekday == 0 {
-		weekday = 7 // Sunday = 7
+		weekday = 7
 	}
 	monday = time.Date(t.Year(), t.Month(), t.Day()-(weekday-1), 0, 0, 0, 0, t.Location())
 	sunday = monday.AddDate(0, 0, 6)
@@ -672,13 +1172,12 @@ func weekIndexInMonth(t time.Time) int {
 
 	idx := weekNum - firstWeekNum
 	if idx < 0 {
-		idx += 53 // Handle year boundary (e.g. Jan week 1 after Dec week 53)
+		idx += 53
 	}
 	return idx
 }
 
-// computeBalanceUpTo computes the balance at the start of the given month/year
-// (i.e., the closing balance of the previous month).
+// computeBalanceUpTo computes the balance at the start of the given month/year.
 func (a *App) computeBalanceUpTo(month, year int) float64 {
 	db := sqlite.GlobalDB.GetDB()
 
@@ -692,12 +1191,13 @@ func (a *App) computeBalanceUpTo(month, year int) float64 {
 		firstStr := firstDay.Format("2006-01-02")
 		lastStr := lastDay.Format("2006-01-02")
 
-		var entries []models.DailyEntry
-		db.Where("date BETWEEN ? AND ?", firstStr, lastStr).Find(&entries)
-		receipts := 0.0
-		for _, e := range entries {
-			receipts += entryReceipts(e)
-		}
+		type sumResult struct{ Total float64 }
+		var r sumResult
+		db.Model(&models.DailyServiceValue{}).
+			Select("COALESCE(SUM(amount), 0) as total").
+			Where("date BETWEEN ? AND ?", firstStr, lastStr).
+			Scan(&r)
+		receipts := r.Total
 
 		var honoraires []models.MonthlyHonoraire
 		db.Where("month = ? AND year = ?", m, year).Find(&honoraires)
@@ -725,4 +1225,3 @@ func (a *App) computeBalanceUpTo(month, year int) float64 {
 	}
 	return balance
 }
-

@@ -19,6 +19,10 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
         <span class="material-symbols-outlined text-[20px]">assessment</span>
         <span class="text-[10px] font-medium">Annuel</span>
       </a>
+      <a routerLink="/gestion-fournisseurs" routerLinkActive="text-blue-700" class="flex flex-col items-center gap-1 text-slate-500">
+        <span class="material-symbols-outlined text-[20px]">inventory_2</span>
+        <span class="text-[10px] font-medium">Fournisseurs</span>
+      </a>
       <a routerLink="/settings" routerLinkActive="text-blue-700" class="flex flex-col items-center gap-1 text-slate-500">
         <span class="material-symbols-outlined text-[20px]">settings</span>
         <span class="text-[10px] font-medium">Paramètres</span>

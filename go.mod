@@ -4,6 +4,7 @@ go 1.25.0
 
 require (
 	github.com/glebarez/sqlite v1.11.0
+	github.com/jung-kurt/gofpdf v1.16.2
 	github.com/wailsapp/wails/v2 v2.12.0
 	github.com/xuri/excelize/v2 v2.10.1
 	golang.org/x/crypto v0.48.0
