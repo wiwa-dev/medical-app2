@@ -1,8 +1,6 @@
 package main
 
 import (
-	"archive/zip"
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -970,7 +968,7 @@ func (a *App) ExportDailyPDF(date string) (string, error) {
 	for _, se := range supplierExpenses {
 		totalSupplierExp += se.Amount
 	}
-	//netBalance := totalReceipts - totalExpenses - totalSupplierExp
+	//netBalance = totalReceipts - totalExpenses - totalSupplierExp
 
 	// Create PDF
 	pdf := gofpdf.New("P", "mm", "A4", "")
@@ -1201,129 +1199,15 @@ func (a *App) ExportDailyPDF(date string) (string, error) {
 	return filePath, nil
 }
 
-// createDechargeTemplateBytes generates a minimal DOCX template containing
-// placeholder markers ({BENEFICIARY}, {AMOUNT}, {AMOUNT_WORDS}, {DESCRIPTION},
-// {DATE}, {CIN}) that will be replaced at runtime with actual values.
-func createDechargeTemplateBytes() ([]byte, error) {
-	buf := new(bytes.Buffer)
-	w := zip.NewWriter(buf)
-
-	// [Content_Types].xml
-	typesContent := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-</Types>`)
-	f, _ := w.Create("[Content_Types].xml")
-	f.Write(typesContent)
-
-	// _rels/.rels
-	relsContent := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-</Relationships>`)
-	f, _ = w.Create("_rels/.rels")
-	f.Write(relsContent)
-
-	// word/_rels/document.xml.rels
-	docRelsContent := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-</Relationships>`)
-	f, _ = w.Create("word/_rels/document.xml.rels")
-	f.Write(docRelsContent)
-
-	// word/document.xml – formatted discharge template with placeholders
-	docContent := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
-  <w:body>
-    <!-- Title: DECHARGE (bold, centered, 26pt) -->
-    <w:p>
-      <w:pPr>
-        <w:jc w:val="center"/>
-        <w:spacing w:after="400"/>
-      </w:pPr>
-      <w:r>
-        <w:rPr>
-          <w:b/>
-          <w:sz w:val="40"/>
-        </w:rPr>
-        <w:t>DECHARGE</w:t>
-      </w:r>
-    </w:p>
-
-    <!-- Body text (12pt) -->
-    <w:p>
-      <w:pPr>
-        <w:spacing w:after="400"/>
-      </w:pPr>
-      <w:r>
-        <w:rPr>
-          <w:sz w:val="28"/>
-        </w:rPr>
-        <w:t xml:space="preserve">Je soussigné(e), {BENEFICIARY} déclare avoir recu la somme de {AMOUNT} ({AMOUNT_WORDS} francs CFA) pour {DESCRIPTION}.</w:t>
-      </w:r>
-    </w:p>
-
-    <!-- Date line -->
-    <w:p>
-      <w:pPr>
-        <w:jc w:val="left"/>
-      </w:pPr>
-      <w:r>
-        <w:rPr>
-          <w:sz w:val="28"/>
-        </w:rPr>
-        <w:t>Dakar, {DATE}</w:t>
-      </w:r>
-    </w:p>
-
-    <!-- CIN line -->
-    <w:p>
-      <w:pPr>
-        <w:jc w:val="left"/>
-        <w:spacing w:after="400"/>
-      </w:pPr>
-      <w:r>
-        <w:rPr>
-          <w:sz w:val="28"/>
-        </w:rPr>
-        <w:t>CIN: {CIN}</w:t>
-      </w:r>
-    </w:p>
-
-    <!-- Signature -->
-    <w:p>
-      <w:pPr>
-        <w:jc w:val="left"/>
-      </w:pPr>
-      <w:r>
-        <w:rPr>
-          <w:sz w:val="28"/>
-        </w:rPr>
-        <w:t>Signature</w:t>
-      </w:r>
-    </w:p>
-  </w:body>
-</w:document>`)
-	f, _ = w.Create("word/document.xml")
-	f.Write(docContent)
-
-	if err := w.Close(); err != nil {
-		return nil, fmt.Errorf("failed to finalize DOCX template: %w", err)
-	}
-	return buf.Bytes(), nil
-}
-
-// GenerateDecharge generates a DOCX discharge/receipt for an expense using
-// the DECHARGE MELVYN 1.docx template with placeholder replacement.
+// GenerateDecharge generates a DOCX discharge/receipt for an expense using a
+// user-uploaded template (decharge-depense.docx) with placeholder replacement.
 func (a *App) GenerateDecharge(date string, description string, amount float64, beneficiaryName string, cin string) (string, error) {
-	templateBytes, err := createDechargeTemplateBytes()
-	if err != nil {
-		return "", fmt.Errorf("failed to create template: %w", err)
+	templatePath := filepath.Join(config.GetTemplateDir(), "decharge-depense.docx")
+	if _, err := os.Stat(templatePath); os.IsNotExist(err) {
+		return "", fmt.Errorf("template decharge-depense.docx non trouvé. Veuillez d'abord importer le template dans Paramètres > Modèles de décharge")
 	}
 
-	doc, err := docx.OpenBytes(templateBytes)
+	doc, err := docx.Open(templatePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to open DOCX template: %w", err)
 	}
@@ -1364,6 +1248,136 @@ func (a *App) GenerateDecharge(date string, description string, amount float64, 
 		return "", fmt.Errorf("failed to save DOCX: %w", err)
 	}
 	return filePath, nil
+}
+
+// createDechargeHonoraireTemplateBytes generates a minimal DOCX template for
+// honoraires discharge receipts matching the decharge.docx format.
+// GenerateDechargeHonoraire generates a DOCX discharge/receipt for a honoraire
+// using a user-uploaded template (decharge-honoraire.docx) with placeholder replacement.
+func (a *App) GenerateDechargeHonoraire(lastName string, firstName string, fonction string, amount float64, cin string, date string) (string, error) {
+	templatePath := filepath.Join(config.GetTemplateDir(), "decharge-honoraire.docx")
+	if _, err := os.Stat(templatePath); os.IsNotExist(err) {
+		return "", fmt.Errorf("template decharge-honoraire.docx non trouvé. Veuillez d'abord importer le template dans Paramètres > Modèles de décharge")
+	}
+
+	doc, err := docx.Open(templatePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to open DOCX template: %w", err)
+	}
+	defer doc.Close()
+
+	amountInt := int(amount)
+	words := numberToWords(amountInt)
+
+	// Parse date and extract month name + formatted date string
+	parsedDate, err := time.Parse("2006-01-02", date)
+	dateStr := date
+	monthName := ""
+	if err == nil {
+		monthsFR := map[time.Month]string{
+			time.January: "Janvier", time.February: "Fevrier", time.March: "Mars",
+			time.April: "Avril", time.May: "Mai", time.June: "Juin",
+			time.July: "Juillet", time.August: "Aout", time.September: "Septembre",
+			time.October: "Octobre", time.November: "Novembre", time.December: "Decembre",
+		}
+		monthName = monthsFR[parsedDate.Month()]
+		dateStr = fmt.Sprintf("le %d %s %d", parsedDate.Day(), monthName, parsedDate.Year())
+	}
+
+	// Format amount with spaces as thousands separator: 100000 → "100 000"
+	amountStr := fmt.Sprintf("%d", amountInt)
+	if len(amountStr) > 3 {
+		var parts []string
+		for i := len(amountStr); i > 0; i -= 3 {
+			start := i - 3
+			if start < 0 {
+				start = 0
+			}
+			parts = append([]string{amountStr[start:i]}, parts...)
+		}
+		amountStr = strings.Join(parts, " ")
+	}
+
+	replaceMap := docx.PlaceholderMap{
+		"NOM":          lastName,
+		"PRENOM":       firstName,
+		"FONCTION":     fonction,
+		"AMOUNT_WORDS": words,
+		"AMOUNT":       amountStr,
+		"MOIS":         monthName,
+		"CNI":          cin,
+		"DATE":         dateStr,
+	}
+
+	if err := doc.ReplaceAll(replaceMap); err != nil {
+		return "", fmt.Errorf("failed to replace placeholders: %w", err)
+	}
+
+	dir := config.GetExportsDir()
+	filePath := filepath.Join(dir, fmt.Sprintf("decharge_honoraire_%s_%d.docx", date, time.Now().Unix()))
+	if err := doc.WriteToFile(filePath); err != nil {
+		return "", fmt.Errorf("failed to save DOCX: %w", err)
+	}
+	return filePath, nil
+}
+
+// ImportTemplate opens a file dialog to select a .docx template, copies it to
+// the templates directory as {templateType}.docx, and returns a success message.
+func (a *App) ImportTemplate(templateType string) (string, error) {
+	// Validate template type
+	if templateType != "decharge-depense" && templateType != "decharge-honoraire" {
+		return "", fmt.Errorf("type de template invalide: %s", templateType)
+	}
+
+	filePath, err := run.OpenFileDialog(a.ctx, run.OpenDialogOptions{
+		Title: fmt.Sprintf("Sélectionnez le template %s.docx", templateType),
+		Filters: []run.FileFilter{
+			{
+				DisplayName: "Documents Word (*.docx)",
+				Pattern:     "*.docx",
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("dialogue annulé: %w", err)
+	}
+	if filePath == "" {
+		return "", fmt.Errorf("aucun fichier sélectionné")
+	}
+
+	destPath := filepath.Join(config.GetTemplateDir(), templateType+".docx")
+
+	srcFile, err := os.Open(filePath)
+	if err != nil {
+		return "", fmt.Errorf("impossible d'ouvrir le fichier source: %w", err)
+	}
+	defer srcFile.Close()
+
+	destFile, err := os.Create(destPath)
+	if err != nil {
+		return "", fmt.Errorf("impossible de créer le fichier de destination: %w", err)
+	}
+	defer destFile.Close()
+
+	if _, err := io.Copy(destFile, srcFile); err != nil {
+		return "", fmt.Errorf("erreur lors de la copie du fichier: %w", err)
+	}
+
+	return fmt.Sprintf("Template %s importé avec succès", templateType), nil
+}
+
+// GetDechargeTemplateStatus returns a map indicating which discharge templates
+// (decharge-depense and decharge-honoraire) have been uploaded by the user.
+func (a *App) GetDechargeTemplateStatus() (map[string]bool, error) {
+	templateDir := config.GetTemplateDir()
+	types := []string{"decharge-depense", "decharge-honoraire"}
+	result := make(map[string]bool, len(types))
+	for _, t := range types {
+		path := filepath.Join(templateDir, t+".docx")
+		_, err := os.Stat(path)
+		result[t] = err == nil
+	}
+	return result, nil
 }
 
 // --- HELPERS ---

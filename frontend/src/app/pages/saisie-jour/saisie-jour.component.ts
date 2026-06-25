@@ -333,7 +333,7 @@ interface ExpenseRow {
             @if (dechargeGenerating) {
               <span class="material-symbols-outlined animate-spin" style="font-size: 16px;">progress_activity</span>
             }
-            {{ dechargeGenerating ? 'Generation...' : 'Generer le PDF' }}
+            {{ dechargeGenerating ? 'Generation...' : 'Generer' }}
           </button>
         </div>
       </div>

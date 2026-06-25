@@ -303,6 +303,85 @@ import User = models.User;
               </div>
             }
 
+            <!-- ── MODÈLES DE DÉCHARGE ── -->
+            @if (activeSection === 'modeles') {
+              <div class="p-6">
+                <div class="mb-6 pb-5 border-b border-slate-100">
+                  <h2 class="text-base font-semibold text-on-surface">Modèles de décharge</h2>
+                  <p class="text-xs text-on-surface-variant mt-0.5">
+                    Importez vos propres fichiers Word (.docx) comme modèles pour les décharges.
+                    Utilisez les placeholders <code class="text-primary font-mono">{{'{'}}...{{'}'}}</code> dans vos documents.
+                  </p>
+                </div>
+
+                <!-- Info banner -->
+<!--                <div class="flex items-start gap-3 p-4 bg-blue-50 rounded-xl mb-6">-->
+<!--                  <span class="material-symbols-outlined text-blue-500 flex-shrink-0" style="font-size:20px">info</span>-->
+<!--                  <div class="text-xs text-blue-700 leading-relaxed">-->
+<!--                    <p class="font-semibold mb-1">Placeholders disponibles :</p>-->
+<!--                    <ul class="list-disc list-inside space-y-0.5">-->
+<!--                      <li><b>decharge-depense.docx</b> : <code>{{'{'}}BENEFICIARY{{'}'}}</code>, <code>{{'{'}}AMOUNT{{'}'}}</code>, <code>{{'{'}}AMOUNT_WORDS{{'}'}}</code>, <code>{{'{'}}DESCRIPTION{{'}'}}</code>, <code>{{'{'}}DATE{{'}'}}</code>, <code>{{'{'}}CIN{{'}'}}</code></li>-->
+<!--                      <li><b>decharge-honoraire.docx</b> : <code>{{'{'}}NOM{{'}'}}</code>, <code>{{'{'}}PRENOM{{'}'}}</code>, <code>{{'{'}}FONCTION{{'}'}}</code>, <code>{{'{'}}AMOUNT_WORDS{{'}'}}</code>, <code>{{'{'}}AMOUNT{{'}'}}</code>, <code>{{'{'}}MOIS{{'}'}}</code>, <code>{{'{'}}CNI{{'}'}}</code>, <code>{{'{'}}DATE{{'}'}}</code></li>-->
+<!--                    </ul>-->
+<!--                  </div>-->
+<!--                </div>-->
+
+                <!-- Template cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  @for (tpl of ['decharge-depense', 'decharge-honoraire']; track tpl) {
+                    <div class="bg-surface-container-high rounded-xl p-5 flex flex-col">
+                      <div class="flex items-start justify-between mb-3">
+                        <div>
+                          <p class="text-sm font-semibold text-on-surface">{{ tpl === 'decharge-depense' ? 'Décharge Dépenses' : 'Décharge Honoraires' }}</p>
+                          <p class="text-xs text-on-surface-variant mt-0.5 font-mono">{{ tpl }}.docx</p>
+                        </div>
+                        <!-- Status badge -->
+                        @if (templateStatus[tpl]) {
+                          <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                            <span class="material-symbols-outlined" style="font-size:10px">check_circle</span>
+                            Importé
+                          </span>
+                        } @else {
+                          <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
+                            <span class="material-symbols-outlined" style="font-size:10px">hourglass_empty</span>
+                            Non importé
+                          </span>
+                        }
+                      </div>
+
+                      <p class="text-xs text-on-surface-variant mb-4 flex-1">
+                        @if (tpl === 'decharge-depense') {
+                          Utilisé pour générer les décharges depuis la page <b>Saisie du Jour</b>.
+                        } @else {
+                          Utilisé pour générer les décharges depuis la page <b>Rapport Mensuel</b>.
+                        }
+                      </p>
+
+                      <button (click)="importTemplate(tpl)"
+                              [disabled]="importingTemplate === tpl"
+                              class="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+                        @if (importingTemplate === tpl) {
+                          <span class="material-symbols-outlined" style="font-size:16px">progress_activity</span>
+                          Importation…
+                        } @else {
+                          <span class="material-symbols-outlined" style="font-size:16px">upload_file</span>
+                          {{ templateStatus[tpl] ? 'Remplacer le modèle' : 'Importer le modèle' }}
+                        }
+                      </button>
+                    </div>
+                  }
+                </div>
+
+                <!-- Note -->
+                <div class="mt-6 flex items-start gap-2 p-3 bg-amber-50 rounded-xl">
+                  <span class="material-symbols-outlined text-amber-500 flex-shrink-0" style="font-size:18px">warning</span>
+                  <p class="text-xs text-amber-700 leading-relaxed">
+                    Le fichier doit être au format Word (.docx). Créez votre document avec les placeholders entre accolades (ex: <code>{{'{'}}BENEFICIARY{{'}'}}</code>) qui seront automatiquement remplacés lors de la génération.
+                  </p>
+                </div>
+              </div>
+            }
+
           </main>
         </div>
       </div>
@@ -339,6 +418,7 @@ export class SettingsComponent implements OnInit {
       label: 'Application',
       items: [
         { key: 'services',  label: 'Services',            icon: 'medical_services' },
+        { key: 'modeles',   label: 'Modèles de décharge', icon: 'description'     },
       ],
     },
   ];
@@ -366,6 +446,10 @@ export class SettingsComponent implements OnInit {
     shortLabel: ['', Validators.required],
   });
 
+  // ── Template management state ──
+  templateStatus: Record<string, boolean> = {};
+  importingTemplate: string | null = null;
+
   ngOnInit(): void {
     this.loginService.currentUser.subscribe((user) => {
       this.currentUser = user;
@@ -378,6 +462,7 @@ export class SettingsComponent implements OnInit {
       }
     });
     this.loadServices();
+    this.loadTemplateStatus();
   }
 
   // ── Services ────────────────────────────────────────────────
@@ -453,6 +538,29 @@ export class SettingsComponent implements OnInit {
       this.toast.success(`Service "${svc.Label}" désactivé`);
     } catch (err) {
       this.toast.error('Erreur: ' + err);
+    }
+  }
+
+  // ── Template Management ───────────────────────────────────
+
+  async loadTemplateStatus(): Promise<void> {
+    try {
+      this.templateStatus = await this.financeService.getDechargeTemplateStatus();
+    } catch {
+      this.toast.error('Erreur chargement statut des templates');
+    }
+  }
+
+  async importTemplate(type: string): Promise<void> {
+    this.importingTemplate = type;
+    try {
+      const msg = await this.financeService.importDechargeTemplate(type);
+      this.toast.success(msg);
+      await this.loadTemplateStatus();
+    } catch (err) {
+      this.toast.error("Erreur: " + err);
+    } finally {
+      this.importingTemplate = null;
     }
   }
 

@@ -42,6 +42,10 @@ export function GenerateDecharge(arg1, arg2, arg3, arg4, arg5) {
   return window['go']['main']['App']['GenerateDecharge'](arg1, arg2, arg3, arg4, arg5);
 }
 
+export function GenerateDechargeHonoraire(arg1, arg2, arg3, arg4, arg5, arg6) {
+  return window['go']['main']['App']['GenerateDechargeHonoraire'](arg1, arg2, arg3, arg4, arg5, arg6);
+}
+
 export function GetAllSuppliers() {
   return window['go']['main']['App']['GetAllSuppliers']();
 }
@@ -56,6 +60,10 @@ export function GetCurrentUser() {
 
 export function GetDailyEntry(arg1) {
   return window['go']['main']['App']['GetDailyEntry'](arg1);
+}
+
+export function GetDechargeTemplateStatus() {
+  return window['go']['main']['App']['GetDechargeTemplateStatus']();
 }
 
 export function GetInvestments(arg1, arg2) {
@@ -96,6 +104,10 @@ export function GetWeekHistory(arg1) {
 
 export function GetYearSettings(arg1) {
   return window['go']['main']['App']['GetYearSettings'](arg1);
+}
+
+export function ImportTemplate(arg1) {
+  return window['go']['main']['App']['ImportTemplate'](arg1);
 }
 
 export function Login(arg1, arg2) {

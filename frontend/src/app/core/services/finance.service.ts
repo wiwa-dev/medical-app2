@@ -14,6 +14,9 @@ import {
   ExportAnnualExcel,
   ExportDailyPDF,
   GenerateDecharge,
+  GenerateDechargeHonoraire,
+  ImportTemplate,
+  GetDechargeTemplateStatus,
   GetYearSettings,
   SetInitialBalance,
   OpenDoc,
@@ -202,5 +205,18 @@ export class FinanceService {
 
   generateDecharge(date: string, description: string, amount: number, beneficiaryName: string, cin: string): Promise<string> {
     return GenerateDecharge(date, description, amount, beneficiaryName, cin);
+  }
+
+  generateDechargeHonoraire(lastName: string, firstName: string, fonction: string, amount: number, cin: string, date: string): Promise<string> {
+    return GenerateDechargeHonoraire(lastName, firstName, fonction, amount, cin, date);
+  }
+
+  // ── Template Management ──────────────────────────────────────
+  importDechargeTemplate(templateType: string): Promise<string> {
+    return ImportTemplate(templateType);
+  }
+
+  getDechargeTemplateStatus(): Promise<Record<string, boolean>> {
+    return GetDechargeTemplateStatus();
   }
 }

@@ -236,8 +236,9 @@ interface InvestmentRow { description: string; amount: number; documentPath?: st
             <table class="w-full text-left border-collapse">
               <thead>
                 <tr class="bg-surface-container-low border-b border-outline-variant">
-                  <th class="font-label-caps text-label-caps text-secondary uppercase px-4 py-3">Nom &amp; Rôle</th>
+                  <th class="font-label-caps text-label-caps text-secondary uppercase px-4 py-3">Nom & Rôle</th>
                   <th class="font-label-caps text-label-caps text-secondary uppercase px-4 py-3 text-right">Montant (FCFA)</th>
+                  <th class="font-label-caps text-label-caps text-secondary uppercase px-4 py-3 text-center w-16">Décharge</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-outline-variant/50">
@@ -248,10 +249,17 @@ interface InvestmentRow { description: string; amount: number; documentPath?: st
                       <div class="font-label-caps text-label-caps text-on-surface-variant mt-0.5">{{ h.Role }}</div>
                     </td>
                     <td class="font-data-tabular text-data-tabular px-4 py-3 text-right text-on-surface">{{ h.Amount | number:'1.0-0' }}</td>
+                    <td class="px-4 py-3 text-center">
+                      <button type="button" (click)="openDechargeHonoraire(h)"
+                              class="p-1.5 text-tertiary hover:bg-tertiary-container/20 rounded-lg transition-colors"
+                              title="Générer une décharge">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">description</span>
+                      </button>
+                    </td>
                   </tr>
                 } @empty {
                   <tr>
-                    <td colspan="2" class="px-4 py-6 text-center font-body-md text-body-md text-on-surface-variant">
+                    <td colspan="3" class="px-4 py-6 text-center font-body-md text-body-md text-on-surface-variant">
                       <span class="material-symbols-outlined block mx-auto mb-2 text-outline" style="font-size: 32px;">person_off</span>
                       Aucun honoraire saisi
                     </td>
@@ -262,6 +270,7 @@ interface InvestmentRow { description: string; amount: number; documentPath?: st
                 <tr class="bg-surface-container-low border-t-2 border-outline-variant">
                   <td class="font-label-caps text-label-caps text-on-surface uppercase px-4 py-3 font-bold">Total Honoraires</td>
                   <td class="font-data-tabular text-data-tabular px-4 py-3 text-right font-bold text-on-surface">{{ report.TotalHonoraires | number:'1.0-0' }}</td>
+                  <td></td>
                 </tr>
               </tfoot>
             </table>
@@ -276,7 +285,7 @@ interface InvestmentRow { description: string; amount: number; documentPath?: st
             <div class="bg-surface border-b border-outline-variant px-4 py-3">
               <h4 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2">
                 <span class="material-symbols-outlined text-error" style="font-size: 18px;">receipt_long</span>
-                Fonctionnement &amp; Dépenses
+                Fonctionnement & Dépenses
               </h4>
             </div>
             <div class="px-4 py-4 flex justify-between items-center">
@@ -625,14 +634,100 @@ interface InvestmentRow { description: string; amount: number; documentPath?: st
       <div class="text-center">
         <p class="font-label-caps text-label-caps text-on-surface-variant mb-12">Le Chef de Centre</p>
         <div class="w-48 border-b border-dashed border-outline-variant"></div>
-        <p class="font-label-caps text-label-caps text-on-surface-variant mt-2">Signature &amp; Cachet</p>
+        <p class="font-label-caps text-label-caps text-on-surface-variant mt-2">Signature & Cachet</p>
       </div>
       <div class="text-center">
         <p class="font-label-caps text-label-caps text-on-surface-variant mb-12">Le Responsable Financier</p>
         <div class="w-48 border-b border-dashed border-outline-variant"></div>
-        <p class="font-label-caps text-label-caps text-on-surface-variant mt-2">Signature &amp; Cachet</p>
+        <p class="font-label-caps text-label-caps text-on-surface-variant mt-2">Signature & Cachet</p>
       </div>
     </div>
+
+    <!-- ── Décharge Modal ── -->
+    @if (dechargeTarget !== null) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" (click)="closeDechargeModal()">
+        <div class="bg-surface rounded-xl shadow-xl max-w-md w-full mx-4 p-6" (click)="$event.stopPropagation()">
+
+          <!-- Header -->
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2">
+              <span class="material-symbols-outlined text-tertiary" style="font-size: 20px;">description</span>
+              Générer une décharge
+            </h3>
+            <button (click)="closeDechargeModal()" class="p-2 text-on-surface-variant hover:text-error rounded-lg transition-colors">
+              <span class="material-symbols-outlined" style="font-size: 20px;">close</span>
+            </button>
+          </div>
+
+          <!-- Form -->
+          <div class="space-y-4">
+            <!-- Bénéficiaire (pre-filled, readonly) -->
+            <div>
+              <label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">Bénéficiaire</label>
+              <input type="text" [value]="dechargeTarget.PersonName" readonly
+                     class="w-full border border-outline-variant rounded-lg px-3 py-2 font-body-md bg-surface-container-low text-on-surface-variant cursor-not-allowed" />
+            </div>
+
+            <!-- Rôle (pre-filled, readonly) -->
+            <div>
+              <label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">Motif / Rôle</label>
+              <input type="text" [value]="dechargeRole" readonly
+                     class="w-full border border-outline-variant rounded-lg px-3 py-2 font-body-md bg-surface-container-low text-on-surface-variant cursor-not-allowed" />
+            </div>
+
+            <!-- Montant (pre-filled, readonly) -->
+            <div>
+              <label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">Montant (FCFA)</label>
+              <input type="number" [value]="dechargeAmount" readonly
+                     class="w-full border border-outline-variant rounded-lg px-3 py-2 font-data-tabular bg-surface-container-low text-on-surface-variant cursor-not-allowed" />
+            </div>
+
+            <!-- Nom (pour la décharge) -->
+            <div>
+              <label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">
+                Nom <span class="text-error">*</span>
+              </label>
+              <input type="text" [(ngModel)]="dechargeNom" placeholder="Ex: FAYE"
+                     class="w-full border border-outline-variant rounded-lg px-3 py-2 font-body-md bg-surface-container-lowest focus:border-primary focus:outline-none" />
+            </div>
+
+            <!-- Prénom (pour la décharge) -->
+            <div>
+              <label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">
+                Prénom <span class="text-error">*</span>
+              </label>
+              <input type="text" [(ngModel)]="dechargePrenom" placeholder="Ex: Seydina Issa"
+                     class="w-full border border-outline-variant rounded-lg px-3 py-2 font-body-md bg-surface-container-lowest focus:border-primary focus:outline-none" />
+            </div>
+
+            <!-- N° CIN -->
+            <div>
+              <label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">
+                N° CIN <span class="text-error">*</span>
+              </label>
+              <input type="text" [(ngModel)]="dechargeCin" placeholder="Ex: 1758199600047"
+                     class="w-full border border-outline-variant rounded-lg px-3 py-2 font-body-md bg-surface-container-lowest focus:border-primary focus:outline-none" />
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex justify-end gap-3 mt-6">
+            <button (click)="closeDechargeModal()"
+                    class="px-4 py-2 border border-outline-variant text-on-surface rounded-lg font-label-caps text-label-caps uppercase hover:bg-surface-container-low transition-colors">
+              Annuler
+            </button>
+            <button (click)="generateDechargeForHonoraire()" [disabled]="dechargeGenerating"
+                    class="px-4 py-2 bg-tertiary text-on-tertiary rounded-lg font-label-caps text-label-caps uppercase hover:bg-tertiary/90 transition-colors shadow-sm disabled:opacity-60 flex items-center gap-2">
+              @if (dechargeGenerating) {
+                <span class="material-symbols-outlined animate-spin" style="font-size: 16px;">progress_activity</span>
+              }
+              {{ dechargeGenerating ? 'Génération...' : 'Générer le PDF' }}
+            </button>
+          </div>
+
+        </div>
+      </div>
+    }
 
   </div>
   }
@@ -677,6 +772,15 @@ export class RapportMensuelComponent implements OnInit {
   offreAgentEtat = 0;
   offreNonAyantDroit = 0;
   supplierBudgets: SupplierBudgetSummary[] = [];
+
+  // ── Décharge modal state ──
+  dechargeTarget: MonthlyHonoraire | null = null;
+  dechargeNom = '';
+  dechargePrenom = '';
+  dechargeRole = '';
+  dechargeAmount = 0;
+  dechargeCin = '';
+  dechargeGenerating = false;
 
   get monthLabel(): string { return MONTHS[this.selectedMonth - 1]; }
 
@@ -848,4 +952,73 @@ export class RapportMensuelComponent implements OnInit {
   }
 
   print(): void { window.print(); }
+
+  // ── Décharge Modal ─────────────────────────────────────────
+  openDechargeHonoraire(h: MonthlyHonoraire): void {
+    this.dechargeTarget = h;
+    // Split the full name into Nom and Prénom (assuming "NOM Prenom" or "Nom Prenom" format)
+    const parts = h.PersonName.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      // Last part is the first name, everything before is the last name
+      this.dechargePrenom = parts.pop() || '';
+      this.dechargeNom = parts.join(' ');
+    } else {
+      this.dechargeNom = h.PersonName;
+      this.dechargePrenom = '';
+    }
+    this.dechargeRole = h.Role;
+    this.dechargeAmount = h.Amount;
+    this.dechargeCin = '';
+  }
+
+  closeDechargeModal(): void {
+    this.dechargeTarget = null;
+    this.dechargeNom = '';
+    this.dechargePrenom = '';
+    this.dechargeRole = '';
+    this.dechargeAmount = 0;
+    this.dechargeCin = '';
+    this.dechargeGenerating = false;
+  }
+
+  async generateDechargeForHonoraire(): Promise<void> {
+    if (!this.dechargeNom.trim()) {
+      this.toast.error('Veuillez saisir le nom');
+      return;
+    }
+    if (!this.dechargePrenom.trim()) {
+      this.toast.error('Veuillez saisir le prénom');
+      return;
+    }
+    if (!this.dechargeCin.trim()) {
+      this.toast.error('Veuillez saisir le numéro CIN');
+      return;
+    }
+    if (this.dechargeAmount <= 0) {
+      this.toast.error('Le montant doit être supérieur à 0');
+      return;
+    }
+    this.dechargeGenerating = true;
+    try {
+      // Use the last day of the selected month as the date
+      const lastDay = new Date(this.selectedYear, this.selectedMonth, 0);
+      const dateStr = lastDay.toISOString().slice(0, 10);
+
+      const filePath = await this.financeService.generateDechargeHonoraire(
+        this.dechargeNom.trim(),
+        this.dechargePrenom.trim(),
+        this.dechargeRole,
+        this.dechargeAmount,
+        this.dechargeCin.trim(),
+        dateStr,
+      );
+      this.toast.success('Décharge générée avec succès');
+      this.closeDechargeModal();
+      await this.financeService.openDoc(filePath);
+    } catch (err) {
+      this.toast.error("Erreur lors de la génération de la décharge: " + err);
+    } finally {
+      this.dechargeGenerating = false;
+    }
+  }
 }

@@ -22,6 +22,8 @@ export function ExportDailyPDF(arg1:string):Promise<string>;
 
 export function GenerateDecharge(arg1:string,arg2:string,arg3:number,arg4:string,arg5:string):Promise<string>;
 
+export function GenerateDechargeHonoraire(arg1:string,arg2:string,arg3:string,arg4:number,arg5:string,arg6:string):Promise<string>;
+
 export function GetAllSuppliers():Promise<Array<models.Supplier>>;
 
 export function GetAnnualReport(arg1:number):Promise<models.AnnualReport>;
@@ -29,6 +31,8 @@ export function GetAnnualReport(arg1:number):Promise<models.AnnualReport>;
 export function GetCurrentUser():Promise<models.User>;
 
 export function GetDailyEntry(arg1:string):Promise<models.DailyEntryWithExpenses>;
+
+export function GetDechargeTemplateStatus():Promise<Record<string, boolean>>;
 
 export function GetInvestments(arg1:number,arg2:number):Promise<Array<models.Investment>>;
 
@@ -49,6 +53,8 @@ export function GetSuppliers(arg1:number):Promise<Array<models.Supplier>>;
 export function GetWeekHistory(arg1:string):Promise<Array<models.DayHistoryRow>>;
 
 export function GetYearSettings(arg1:number):Promise<models.YearSettings>;
+
+export function ImportTemplate(arg1:string):Promise<string>;
 
 export function Login(arg1:string,arg2:string):Promise<models.User>;
 

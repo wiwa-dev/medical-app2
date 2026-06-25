@@ -24,3 +24,9 @@ func GetExportsDir() string {
 	os.MkdirAll(dir, 0755)
 	return dir
 }
+
+func GetTemplateDir() string {
+	dir := filepath.Join(GetAppDataDir(), "templates")
+	os.MkdirAll(dir, 0755)
+	return dir
+}
